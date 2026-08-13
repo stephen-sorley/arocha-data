@@ -1,0 +1,14 @@
+.git
+*.jsonc
+
+node_modules/
+.pnpm-store/
+
+# logs
+logs
+*.log
+npm-debug.log*
+
+# environment variables
+.env
+.env.*

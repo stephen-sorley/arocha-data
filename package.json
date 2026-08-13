@@ -1,0 +1,15 @@
+{
+  "name": "arocha subs",
+  "description": "",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "run": "main.ts"
+  },
+  "dependencies": {
+    "@types/node": "^26.2.0",
+    "dotenv": "^17.4.2",
+    "jsforce": "^3.10.19",
+    "stripe": "^22.5.0"
+  }
+}
