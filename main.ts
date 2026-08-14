@@ -5,7 +5,7 @@ import { setTimeout } from 'node:timers/promises';
 import Stripe from "stripe";
 import { Connection } from "jsforce";
 
-import ids from "./givewp-recurring.json" with { type: 'json' };
+import records from "./not-cnp.json" with { type: 'json' };
 import { exit } from "node:process";
 
 dotenv.config({quiet: true});
@@ -64,6 +64,9 @@ async function getAllActiveSubs() {
   return activeSubs;
 }
 
+// Extract processor subscription ID's from data.
+const ids = records.map(record => record["Processor Subscription ID"]);
+
 let start = performance.now();
 const subs: Stripe.Subscription[] = [];
 const chunk = 10;
@@ -88,7 +91,7 @@ const fields = [
   "Email",
   "npe01__HomeEmail__c",
   "npe01__WorkEmail__c",
-   "npe01__AlternateEmail__c"
+  "npe01__AlternateEmail__c"
 ];
 
 start = performance.now();
@@ -110,7 +113,7 @@ for (let i = 0; i < uniqueEmails.length; i += sfChunk) {
   res.records.forEach(record => {
     for(const field of fields) {
       if (record[field] && record.Id) {
-        emailToContactMap.set(record[field], record.Id);
+        emailToContactMap.set(record[field].toLocaleLowerCase(), record.Id);
       }
     }
   });
@@ -118,7 +121,7 @@ for (let i = 0; i < uniqueEmails.length; i += sfChunk) {
 console.error(`\nRetrieved ${emailToContactMap.size} email mappings in ${(performance.now() - start)/1000}s`);
 
 for (const email of emails) {
-  console.log((email && emailToContactMap.get(email)) || "UNKNOWN");
+  console.log((email && emailToContactMap.get(email.toLocaleLowerCase())) || "UNKNOWN");
 }
 
 exit();

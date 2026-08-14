@@ -1,6 +1,11 @@
 .git
 *.jsonc
 
+cnp.csv
+cnp.json
+not-cnp.csv
+not-cnp.json
+
 node_modules/
 .pnpm-store/
 
