@@ -3,10 +3,10 @@
 import type Stripe from "stripe";
 
 import {
-  connectStripe,
+  stripeConnect,
   stripeGetSubs,
 
-  connectSalesforce,
+  sfConnect,
   sfEmailsToContacts
 } from "./lib/utils.ts";
 
@@ -14,8 +14,8 @@ import records from "./not-cnp.json" with { type: 'json' };
 import { exit } from "node:process";
 
 
-const stripe = connectStripe();
-const sf = await connectSalesforce();
+const stripe = stripeConnect();
+const sf = await sfConnect();
 
 // Get subscription data from Stripe.
 const ids = records.map(record => record["Processor Subscription ID"]).filter(id => id.startsWith("sub_"));

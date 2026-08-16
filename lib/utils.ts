@@ -42,9 +42,9 @@ const fromEnv = (name: string) => {
 // -----------------------------------
 // Stripe
 
-export type StripeConnection = ReturnType<typeof connectStripe>;
+export type StripeConnection = ReturnType<typeof stripeConnect>;
 
-export const connectStripe = () => {
+export const stripeConnect = () => {
   // API keys here: https://dashboard.stripe.com/acct_1EwwrmKnX7EKttkA/apikeys
   init();
 
@@ -76,9 +76,9 @@ export const stripeGetSubs = async (stripe: StripeConnection, ids: string[], par
 // -----------------------------------
 // Salesforce
 
-export type SalesforceConnection = Awaited<ReturnType<typeof connectSalesforce>>;
+export type SalesforceConnection = Awaited<ReturnType<typeof sfConnect>>;
 
-export const connectSalesforce = async () => {
+export const sfConnect = async () => {
   init();
 
   const sf = new Connection({
@@ -170,7 +170,6 @@ export const cmGetLists = async () => {
   initCM();
 
   const url = new URL(`${CM_BASE_URL}/clients/${CM_ID}/lists.json`);
-  console.error(`Fetching url: ${url}\nWith headers: ${JSON.stringify(CM_HEADERS)}`);
 
   const resp = await fetch(url, {
     method: 'GET',
@@ -232,14 +231,15 @@ export const cmGetSubs = async (state: CMSubscriber["State"] = "Active") => {
   const lists = await cmGetLists();
 
   // Get active subs from each mailing list, concurrently.
-  const subsPerList = await Promise.all(lists.map(async (list) => {
+  await Promise.all(lists.map(async (list) => {
     const subs = await cmGetSubsForList(list.ListID, state);
     
     // Add each record to subscriber's list of subscriptions.
     for(const sub of subs) {
-      const arr = emailToSubsMap.get(sub.EmailAddress) ?? [];
+      const normEmail = sub.EmailAddress.toLocaleLowerCase();
+      const arr = emailToSubsMap.get(normEmail) ?? [];
       if (arr.length == 0) {
-        emailToSubsMap.set(sub.EmailAddress, arr);
+        emailToSubsMap.set(normEmail, arr);
       }
       
       arr.push({

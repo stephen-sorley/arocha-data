@@ -4,13 +4,13 @@
 
 import type Stripe from "stripe";
 import { parseArgs } from "node:util";
-import { connectStripe, stripeGetSubs } from "./lib/utils.ts";
+import { stripeConnect, stripeGetSubs } from "./lib/utils.ts";
 
 const {positionals} = parseArgs({
   allowPositionals: true,
 });
 
-const stripe = connectStripe();
+const stripe = stripeConnect();
 
 let start = performance.now();
 const subs = await stripeGetSubs(stripe, positionals, {
