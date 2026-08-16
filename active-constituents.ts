@@ -83,6 +83,8 @@ const accounts = new Map<string, Account>();
 let numDiscrete = 0; // number of contacts + number of organization accounts.
 let numOrgs = 0; // number of organization accounts
 let numToKeep = 0; // number of discrete entities we wish to keep around.
+let bloomerang = 0;
+let virtuous = 0;
 
 // Get records from all accounts, and their associated contacts.
 const sfEmails = new Set<string>;
@@ -96,6 +98,8 @@ await sf
       numDiscrete++;
       numOrgs++;
       numToKeep++;
+      bloomerang++;
+      virtuous++;
       return;
     }
     const contacts = account.Contacts.records as Record<string, any>[];
@@ -105,6 +109,8 @@ await sf
     if (account.Type !== "Household") {
       numDiscrete += contacts.length + 1;
       numToKeep += contacts.length + 1;
+      virtuous++;
+      bloomerang += contacts.length + 1;
       return;
     }
 
@@ -148,6 +154,8 @@ await sf
 
     if (keep) {
       numToKeep += contacts.length;
+      bloomerang++;
+      virtuous++;
     }
 
     /*
@@ -176,11 +184,13 @@ console.error(`Retrieved ${numDiscrete} constituents from SF in ${Math.round(per
 let numMissing = 0;
 for (const [email,val] of mailingListSubs.entries()) {
   if (!sfEmails.has(email)) {
-    numDiscrete++;
-    numToKeep++;
     numMissing++;
   }
 }
+numDiscrete += numMissing;
+numToKeep += numMissing;
+bloomerang += numMissing;
+virtuous += numMissing;
 console.error(`Warning: ${numMissing} active subscribers in CM were not in SF, adding them in.`);
 
 console.log(`
@@ -191,5 +201,9 @@ Discrete constituents: ${numDiscrete}
 
 Constituents retained: ${numToKeep}
 Constituents dropped : ${numDiscrete - numToKeep}
+
+Billable Contacts
+  Bloomerang         : ${bloomerang}
+  Virtuous           : ${virtuous}
 ========================================
 `);
