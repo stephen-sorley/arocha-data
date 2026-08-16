@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { cmGetActiveSubs } from "./lib/utils.ts"
+import { cmGetSubs } from "./lib/utils.ts"
 
 const start = performance.now();
-const emailToSubsMap = await cmGetActiveSubs();
+const emailToSubsMap = await cmGetSubs("Active");
 console.error(`\nRetreived ${emailToSubsMap.size} active CM subscribers in ${(performance.now() - start)/1000}s`);
 
 type Subscription = {

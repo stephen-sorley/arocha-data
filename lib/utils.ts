@@ -166,7 +166,7 @@ export type CMList = {
   Name: string,
   [key: string]: unknown
 };
-export const cmGetAllLists = async () => {
+export const cmGetLists = async () => {
   initCM();
 
   const url = new URL(`${CM_BASE_URL}/clients/${CM_ID}/lists.json`);
@@ -194,10 +194,10 @@ export type CMSubscriber = {
   "ConsentToSendSms"?: "Yes" | "No"
   [key: string]: unknown
 };
-export const cmGetActiveSubsForList = async (listId: string) => {
+export const cmGetSubsForList = async (listId: string, state: CMSubscriber["State"] = "Active") => {
   initCM();
 
-  const url = new URL(`${CM_BASE_URL}/lists/${listId}/active.json`);
+  const url = new URL(`${CM_BASE_URL}/lists/${listId}/${state.toLocaleLowerCase()}.json`);
 
   const subs: CMSubscriber[] = [];
   let page = 0;
@@ -225,15 +225,15 @@ type CMSubInfo = {
   list: CMList;
   sub: CMSubscriber;
 };
-export const cmGetActiveSubs = async () => {
+export const cmGetSubs = async (state: CMSubscriber["State"] = "Active") => {
   const emailToSubsMap = new Map<string, CMSubInfo[]>;
   
   // Get all mailing lists.
-  const lists = await cmGetAllLists();
+  const lists = await cmGetLists();
 
   // Get active subs from each mailing list, concurrently.
   const subsPerList = await Promise.all(lists.map(async (list) => {
-    const subs = await cmGetActiveSubsForList(list.ListID);
+    const subs = await cmGetSubsForList(list.ListID, state);
     
     // Add each record to subscriber's list of subscriptions.
     for(const sub of subs) {
