@@ -43,7 +43,6 @@ const accountFields = [
 
 
 const emailFields = [
-  "Email",
   "npe01__HomeEmail__c",
   "npe01__WorkEmail__c",
   "npe01__AlternateEmail__c"
