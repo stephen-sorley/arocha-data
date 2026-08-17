@@ -56,12 +56,17 @@ const f_affiliation = "npsp__Primary_Affiliation__c";
 const contactFields = [
   "Id", // contact ID
   "AccountId",
+  "Email", //preferred email field, for detecting any data errors only
   ...emailFields,
   f_lastGiftDate,
   f_largestHardYearTotal,
   f_largestSoft,
   f_affiliation
 ];
+
+const normEmail = (email?: string) => {
+  return email?.trim().toLocaleLowerCase();
+}
 
 const contactOnMailingList = (sfContact: any) => {
   for (const efield of emailFields) {
@@ -114,11 +119,23 @@ await sf
     let householdLastGiftDate = undefined;
     let householdBestGiftAmount = 0;
     for (const contact of contacts) {
+      let matchedPreferred = false;
+      let foundEmail: string | undefined;
       for (const efield of emailFields) {
-        const email = contact[efield];
+        const email = normEmail(contact[efield]);
         if (email) {
-          sfEmails.add(email.toLocaleLowerCase());
+          foundEmail ??= email;
+          matchedPreferred ||= contact["Email"] && normEmail(contact["Email"]) === email;
+          if (sfEmails.has(email.toLocaleLowerCase())) {
+            console.error("warning, duplicate email: " + email);
+          } else {
+            sfEmails.add(email.toLocaleLowerCase());
+          }
         }
+      }
+
+      if (foundEmail && !matchedPreferred) {
+        console.error("warning, preferred email mismatch: " + foundEmail);
       }
 
       // Mark all as constituents if any contact in the household is an active subscriber
@@ -167,7 +184,7 @@ bloomerang += numMissing;
 virtuous += numMissing;
 console.error(`Warning: ${numMissing} active subscribers in CM were not in SF, adding them in.`);
 
-console.log(`
+console.error(`
 ========================================
 Original constituents: ${numDiscrete}
   Organizations      : ${numOrgs}
