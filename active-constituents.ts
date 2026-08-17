@@ -12,9 +12,9 @@ import {
 
 
 // Set parameters for what contacts and transactions we'll keep.
-const allGiftsWindow = 5; // keep contacts who've given within the past 5 calendar years.
-const largeGiftsWindow = 10; // keep contacts who've made big gifts within the past 7 calendar years.
-const largeGiftThreshold = 1000; // how big is a "large" donation?
+const allGiftsWindow = 5; // how long do we keep households who've made any donation at all?
+const largeGiftsWindow = 10; // how long do we keep households who've donated a lot?
+const largeGiftThreshold = 1000; // how many dollars is considered a lot of donations?
 
 const currentYear = Temporal.Now.plainDateISO().year;
 const allMinDate = Temporal.PlainDate.from(`${currentYear - allGiftsWindow}-01-01`);
