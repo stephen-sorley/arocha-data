@@ -163,8 +163,7 @@ const initCM = () => {
 
 export type CMList = {
   ListID: string,
-  Name: string,
-  [key: string]: unknown
+  Name: string
 };
 export const cmGetLists = async () => {
   initCM();
@@ -172,12 +171,35 @@ export const cmGetLists = async () => {
   const url = new URL(`${CM_BASE_URL}/clients/${CM_ID}/lists.json`);
 
   const resp = await fetch(url, {
-    method: 'GET',
+    method: "GET",
     headers: CM_HEADERS
   });
   
-  if (!resp.ok) throw new Error(`Failed to fetch CM mailing lists: ${resp.status}`);
-  return (await resp.json()) as CMList[]; // Returns array of lists containing ListID
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch CM mailing lists: ${resp.status}`);
+  }
+  return resp.json() as Promise<CMList[]>;
+}
+
+export type CMSegment = {
+  ListID: string,
+  SegmentID: string,
+  Title: string
+}
+export const cmGetSegmentsForList = async (listId: string) => {
+  initCM();
+
+  const url = new URL(`${CM_BASE_URL}/lists/${listId}/segments.json`);
+
+  const resp = await fetch(url, {
+    method: "GET",
+    headers: CM_HEADERS,
+  });
+
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch segments for CM list ${listId}: ${resp.status}`);
+  }
+  return resp.json() as Promise<CMSegment[]>;
 }
 
 export type CMSubscriber = {
@@ -190,64 +212,177 @@ export type CMSubscriber = {
   "CustomFields"?: [ { "Key": string, "Value": string } ],
   "ReadsEmailWith"?: string,
   "ConsentToTrack"?: "Yes" | "No",
-  "ConsentToSendSms"?: "Yes" | "No"
-  [key: string]: unknown
+  "ConsentToSendSms"?: "Yes" | "No",
 };
-export const cmGetSubsForList = async (listId: string, state: CMSubscriber["State"] = "Active") => {
-  initCM();
-
-  const url = new URL(`${CM_BASE_URL}/lists/${listId}/${state.toLocaleLowerCase()}.json`);
-
-  const subs: CMSubscriber[] = [];
-  let page = 0;
-  let npages;
-  do {
-    page++;
+const getSubsHelper = async (path: string, msg: string) => {
+  const url = new URL(path);
+  const getPage = async (page: number) => {
     url.search = new URLSearchParams({page: String(page)}).toString();
     const resp = await fetch(url, {
       method: 'GET',
       headers: CM_HEADERS
     });
-
-    if (!resp.ok) throw new Error(`Failed to fetch CM mailing lists: ${resp.status}`);
-
-    const data = (await resp.json()) as any;
-
-    subs.push(...(data.Results));
-    npages = data.NumberOfPages || 1;
-  } while(page < npages);
-
-  return subs;
-}
-
-type CMSubInfo = {
-  list: CMList;
-  sub: CMSubscriber;
-};
-export const cmGetSubs = async (state: CMSubscriber["State"] = "Active") => {
-  const emailToSubsMap = new Map<string, CMSubInfo[]>;
-  
-  // Get all mailing lists.
-  const lists = await cmGetLists();
-
-  // Get active subs from each mailing list, concurrently.
-  await Promise.all(lists.map(async (list) => {
-    const subs = await cmGetSubsForList(list.ListID, state);
-    
-    // Add each record to subscriber's list of subscriptions.
-    for(const sub of subs) {
-      const normEmail = sub.EmailAddress.toLocaleLowerCase();
-      const arr = emailToSubsMap.get(normEmail) ?? [];
-      if (arr.length == 0) {
-        emailToSubsMap.set(normEmail, arr);
+    if (!resp.ok) {
+      throw new Error(`${msg}: ${resp.status}`);
+    }
+    return (resp.json() as Promise<any>).then(page => {
+      // Try to fix up names before returning the data.
+      for (const sub of page.Results as CMSubscriber[]) {
+        let name = sub.Name;
+        if (sub.CustomFields) {
+          let first: string | undefined;
+          let last: string | undefined;
+          for (const {Key, Value} of sub.CustomFields) {
+            if (Key === "[FirstName1]") {
+              first = Value;
+            }
+            if (Key === "[LastName1]") {
+              last = Value;
+            }
+          }
+          if (!name || name.includes("[Not Provided]")) {
+            if (first || last) {
+              name = (first||"") + " " + (last||"");
+            }
+          } else if (first && last && name.length < first.length + last.length + 1) {
+            name = first + " " + last;
+          } else if (!first && last && !name.trim().includes(" ")) {
+            name = name.trim() + " " + last;
+          }
+        }
+        sub.Name = name?.trim();
       }
-      
-      arr.push({
-        list: list,
-        sub: sub
+      return page;
+    });
+  };
+
+  return getPage(1).then(page => {
+    const subs: CMSubscriber[] = page.Results;
+
+    if (page.NumberOfPages > 1) {
+      const pagePromises: Promise<any>[] = [];
+      for (let i=2; i<=page.NumberOfPages; i++) {
+        pagePromises.push(getPage(i));
+      }
+
+      return Promise.all(pagePromises).then((data) => {
+        const subArrays = data.map(arr => arr.Results as CMSubscriber[]).flat();
+        return [...subs, ...subArrays];
       });
     }
-  }));
+    return subs;
+  });
+}
 
-  return emailToSubsMap;
+export const cmGetSubsForList = async (listId: string, state: CMSubscriber["State"] = "Active") => {
+  initCM();
+  return getSubsHelper(
+    `${CM_BASE_URL}/lists/${listId}/${state.toLocaleLowerCase()}.json`,
+    `Failed to fetch ${state.toLocaleLowerCase()} subscriptions for CM list ${listId}`
+  );
+}
+
+export const cmGetSubsForSegment = async (segId: string, state: CMSubscriber["State"] = "Active") => {
+  initCM();
+  return getSubsHelper(
+    `${CM_BASE_URL}/segments/${segId}/${state.toLocaleLowerCase()}.json`,
+    `Failed to fetch ${state.toLocaleLowerCase()} subscriptions for CM segment ${segId}`
+  );
+}
+
+type CMInterest = {
+  id: string,
+  name: string,
+  type: "list" | "segment",
+}
+type CMSubInfo = {
+  interest: CMInterest,
+  sub: CMSubscriber,
+};
+type CMGetSubsParams = {
+  /**
+   * What subscriber state to query.
+   * @default "Active"
+   */
+  state?: CMSubscriber["State"],
+  /**
+   * Include data on segments?
+   * @default false
+   */
+  includeSegments?: boolean,
+  /**
+   * If provided, will restrict the query to lists and segments that
+   * match one of the names in the list. Not case-sensitive.
+   * 
+   * @default no restrictions, query everything
+   */
+  restrict?: string[],
+};
+export const cmGetSubs = async (params?: CMGetSubsParams) => {
+  // Set defaults for arguments.
+  params ??= {};
+  params.state ??= "Active";
+  params.includeSegments ??= false;
+
+  let restrictSet: Set<string> | undefined;
+  if (params.restrict && params.restrict.length > 0) {
+    restrictSet = new Set<string>();
+    for (const name of params.restrict) {
+      restrictSet.add(name.trim().toLocaleLowerCase());
+    }
+  }
+
+  const emailToSubsMap = new Map<string, CMSubInfo[]>;
+
+  // Get all mailing lists.
+  const lists = (await cmGetLists()).map(list => ({
+    id: list.ListID,
+    name: list.Name,
+    type: "list"
+  } as CMInterest));
+
+  return Promise.all(lists.map(async list => {
+    // The list itself is always an interest.
+    let interests = [list];
+
+    // Get segments for list, add to the list of interests to check.
+    // Note: only active subscribers can be retreived from segment records.
+    if (params.includeSegments && params.state === "Active") {
+      const segs = (await cmGetSegmentsForList(list.id)).map(seg => ({
+        id: seg.SegmentID,
+        name: seg.Title,
+        type: "segment"
+      } as CMInterest));
+      interests.push(...segs);
+    }
+
+    if (restrictSet) {
+      interests = interests.filter(
+        interest => restrictSet.has(interest.name.trim().toLocaleLowerCase())
+      );
+    }
+
+    // Retrieve subscribers for each interest concurrently, and
+    // add them to the subscriber info map.
+    return Promise.all(interests.map(async (interest, idx) => {
+      const subs = await (idx === 0 ?
+        cmGetSubsForList(interest.id, params.state)
+        :
+        cmGetSubsForSegment(interest.id, params.state)
+      );
+      // Add each record to subscriber's list of subscriptions.
+      for (const sub of subs) {
+        const normEmail = sub.EmailAddress.toLocaleLowerCase();
+        const arr = emailToSubsMap.get(normEmail) ?? [];
+        if (arr.length === 0) {
+          emailToSubsMap.set(normEmail, arr);
+        }
+
+        arr.push({
+          interest: interest,
+          sub: sub
+        });
+      }
+    }));
+  })).then(() => emailToSubsMap);
 }

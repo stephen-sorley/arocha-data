@@ -23,7 +23,15 @@ const largeMinDate = Temporal.PlainDate.from(`${currentYear - largeGiftsWindow}-
 
 // Get current mailing list subscription records.
 let start = performance.now();
-const mailingListSubs = await cmGetSubs("Active");
+const mailingListSubs = await cmGetSubs({
+  state: "Active",
+  restrict: [
+    "Master List",
+    "Climate Stewards",
+    "Church Partners",
+    "Mighty Network Members",
+  ],
+});
 console.error(`Retreived ${mailingListSubs.size} active CM subscribers in ${Math.round(performance.now() - start)/1000}s`);
 
 const sf = await sfConnect();
@@ -56,19 +64,6 @@ const contactFields = [
   f_affiliation
 ];
 
-type Contact = {
-  id: string,
-  lastGiftDate?: Temporal.PlainDate,
-  bestGift: number,
-  emails: string[],
-  hasAffiliation: boolean,
-};
-
-type Account = {
-  id: string,
-  contacts: Contact[],
-}
-
 const contactOnMailingList = (sfContact: any) => {
   for (const efield of emailFields) {
     const email = sfContact[efield];
@@ -79,7 +74,6 @@ const contactOnMailingList = (sfContact: any) => {
   return false;
 };
 
-const accounts = new Map<string, Account>();
 let numDiscrete = 0; // number of contacts + number of organization accounts.
 let numOrgs = 0; // number of organization accounts
 let numToKeep = 0; // number of discrete entities we wish to keep around.
@@ -157,32 +151,13 @@ await sf
       bloomerang++;
       virtuous++;
     }
-
-    /*
-    const contact: Contact = {
-      id: record.Id,
-      lastGiftDate: record[f_lastGiftDate]? Temporal.PlainDate.from(record) : undefined,
-      bestGift: (record[f_largestHardYearTotal]||0) + (record[f_largestSoft]||0),
-      emails: [],
-      hasAffiliation: !!record[f_affiliation],
-    };
-    const emailsSet = new Set<string>();
-    for (const efield of emailFields) {
-      const email = record[efield];
-      if (email) {
-        emailsSet.add(email.toLocaleLowerCase());
-      }
-    }
-    contact.emails = [...emailsSet];
-    */
-
   })
   .execute({ autoFetch: true });
 console.error(`Retrieved ${numDiscrete} constituents from SF in ${Math.round(performance.now() - start)/1000}s`);
 
 // Add any active subscribers in CM that are missing from Salesforce.
 let numMissing = 0;
-for (const [email,val] of mailingListSubs.entries()) {
+for (const email of mailingListSubs.keys()) {
   if (!sfEmails.has(email)) {
     numMissing++;
   }
