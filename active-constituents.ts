@@ -169,7 +169,7 @@ console.error(`Warning: ${numMissing} active subscribers in CM were not in SF, a
 
 console.log(`
 ========================================
-Discrete constituents: ${numDiscrete}
+Original constituents: ${numDiscrete}
   Organizations      : ${numOrgs}
   Individuals        : ${numDiscrete-numOrgs}
 

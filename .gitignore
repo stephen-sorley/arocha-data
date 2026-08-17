@@ -1,5 +1,6 @@
 .git
 *.jsonc
+private/
 
 cnp.csv
 cnp.json
