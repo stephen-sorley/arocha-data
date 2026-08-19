@@ -24,7 +24,6 @@ type Address = {
 
 type Organization = {
   id: string,
-  members?: Individual["id"][],
   primaryContact?: Individual["id"],
   address?: Address,
   phone?: string,
@@ -36,7 +35,7 @@ type Organization = {
 
 type Household = {
   id: string,
-  members: Individual["id"][],
+  name: string,
   primaryContact: Individual["id"],
   created: string, //ISO timestamp
 };
@@ -53,8 +52,7 @@ type Affiliation = {
 
 type Individual = {
   id: string,
-  household?: Household["id"],
-  affiliations?: Affiliation["id"][],
+  parent?: Household["id"] | Organization["id"],
   primaryAffiliation?: Organization["id"], //aka "employer"
   address: {
     home?: Address,
@@ -82,7 +80,7 @@ type Individual = {
 };
 
 
-type Designation = {
+type Fund = {
   id: string,
   name: string,
 };
@@ -93,12 +91,17 @@ type Gift = {
   giveDate: string, //ISO timestamp
   gross: number,
   fee: number,
+  donorFeeCover: number,
   refunded: boolean,
 
-  designations?: {
-    designationId: Designation["id"],
+  designation1: {
+    fund: Fund["id"],
     amount: number,
-  }[],
+  }
+  designation2: {
+    fund: Fund["id"],
+    amount: number,
+  }
 
   method?: "card" | "ach" | "paypal" | "cash" | "check",
   processor?: "stripe" | "paypal" | "cnp",
@@ -123,15 +126,15 @@ type Commitment = {
   reference?: string,
 }
 
-
-type MarketingInterest = {
-  id: string,
-  name: string,
-}
-
 type MarketingSubscription = {
   subscriber: Individual["id"],
-  interest: MarketingInterest["id"],
+  /**
+   * ARUSA: main newsletter, every contact will have this
+   * CSUSA: climate stewards
+   * LYP: LoveYourPlace (Might Networks Memebers)
+   * CP: Church Partners
+   */
+  interest: "ARUSA" | "CSUSA" | "LYP" | "CP",
   email: string,
   joined: string, //ISO timestamp
   status: "subscribed" | "unsubscribed",
