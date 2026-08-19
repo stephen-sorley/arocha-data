@@ -10,8 +10,7 @@ import {
   sfEmailsToContacts
 } from "./lib/utils.ts";
 
-import records from "./not-cnp.json" with { type: 'json' };
-import { exit } from "node:process";
+import records from "./private/not-cnp.json" with { type: 'json' };
 
 
 const stripe = stripeConnect();

@@ -1,0 +1,1 @@
+Private donor data that we don't want to commit to GitHub will be stored here during a build.

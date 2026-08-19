@@ -7,7 +7,7 @@
 import * as dotenv from "dotenv";
 import { Connection } from "jsforce";
 
-import cnp from "./cnp.json" with {type: "json"};
+import cnp from "./private/cnp.json" with {type: "json"};
 
 dotenv.config({quiet: true});
 
