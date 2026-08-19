@@ -1,12 +1,25 @@
 import * as dotenv from "dotenv";
-import Stripe from "stripe";
+import crypto from "node:crypto";
 import { setTimeout } from 'node:timers/promises';
+
+import Stripe from "stripe";
+import {
+  Client,
+  Environment,
+  SubscriptionsController
+} from '@paypal/paypal-server-sdk';
 import { Connection } from "jsforce";
+
+import des from "../designation-override.json" with {type: "json"};
 
 /** Where to get API keys (stick in a file in project root named .env):
  * 
  * # Stripe: https://dashboard.stripe.com/acct_1EwwrmKnX7EKttkA/apikeys
  * STRIPE_KEY= Restricted Keys -> "Legacy Subscription Manager" -> Token
+ * 
+ * # PayPal: https://developer.paypal.com/dashboard/applications/live
+ * PAYPAL_ID= "Legacy Subscriptions" -> Client ID
+ * PAYPAL_KEY= "Legacy Subscriptions" -> Secret Key 1
  * 
  * # Salesforce: https://arochausa.my.salesforce.com/ecapp/externalClientAppManageConsumer.apexp?ecAppId=0xIVI0000000Wsj&retURL=https%3A%2F%2Farochausa.my.salesforce-setup.com%2Faura%3Fr%3D77%26ui-identity-components-aura-controllers.ExternalClientAppDetail.getAllApexClasses%3D1%26ui-identity-components-aura-controllers.ExternalClientAppDetail.getAllCustomAttributes%3D1%26ui-identity-components-aura-controllers.ExternalClientAppDetail.getAllOAuthCustomScopes%3D1%26ui-identity-components-aura-controllers.ExternalClientAppDetail.getAllPermissionSets%3D1%26ui-identity-components-aura-controllers.ExternalClientAppDetail.getAllProfiles%3D1%26ui-identity-components-aura-controllers.ExternalClientAppDetail.getExternalClientApp%3D1%26ui-identity-components-aura-controllers.ExternalClientAppDetail.getLogoUrl%3D1%26ui-identity-components-aura-controllers.ExternalClientAppDetail.getStandardUsers%3D1
  * SF_ID= Consumer Key
@@ -15,6 +28,9 @@ import { Connection } from "jsforce";
  * # Campaign Monitor: https://arochaus.createsend.com/account/apiandintegrations
  * CM_ID= API Client ID
  * CM_KEY= API Key
+ * 
+ * # A Rocha Email Key: finance bitwarden => search for "email key"
+ * EMAIL_KEY= 
  */
 
 let initialized = false;
@@ -35,6 +51,143 @@ const fromEnv = (name: string) => {
   }
   return val;
 };
+
+
+export type RecurringSub = {
+  id: string, // processor subscription ID: "sub_" for stripe, "I-" for paypal
+  since: string, // ISO time string
+  lead: "GiveWP" | "LYP" | "CnP",
+  email?: string,
+  designation: string, //match salesforce campaign names
+  firstName?: string,
+  lastName?: string,
+  amount: number,
+  frequency: "Month" | "Quarter" | "Year",
+}
+
+
+// -----------------------------------
+// Email encryption/decryption for URL's
+
+let EMAIL_KEY: Buffer<ArrayBuffer> | undefined;
+
+const initEmail = () => {
+  init();
+  if (!EMAIL_KEY) {
+    EMAIL_KEY = Buffer.from(fromEnv("EMAIL_KEY"));
+  }
+}
+
+export const emailNorm = (email?: string) => {
+  return email?.trim().toLowerCase();
+}
+
+export const emailEncrypt = (email?: string) => {
+  initEmail();
+  const nemail = emailNorm(email);
+  if (!nemail || !EMAIL_KEY) {
+    return undefined;
+  }
+  const enc = crypto.createCipheriv("aes-128-ecb", EMAIL_KEY, null);
+  return enc.update(nemail, "utf8", "base64url") + enc.final("base64url");
+}
+
+export const emailDecrypt = (encEmail?: string) => {
+  initEmail();
+  if (!encEmail || !EMAIL_KEY) {
+    return undefined;
+  }
+  const dec = crypto.createDecipheriv("aes-128-ecb", EMAIL_KEY, null)
+  return dec.update(encEmail, 'base64url', "utf8") + dec.final("utf8");
+}
+
+
+// -----------------------------------
+// PayPal
+
+export type PaypalConnection = ReturnType<typeof paypalConnect>;
+
+export const paypalConnect = () => {
+  init();
+
+  return new Client({
+    clientCredentialsAuthCredentials: {
+      oAuthClientId: fromEnv("PAYPAL_ID"),
+      oAuthClientSecret: fromEnv("PAYPAL_KEY"),
+    },
+    timeout: 0,
+    environment: Environment.Production,
+  });
+}
+
+export const paypalCondensedSubs = async (paypal: PaypalConnection) => {
+  const pps = new SubscriptionsController(paypal);
+  const CHUNK = 20;
+
+  const subIds: NonNullable<Awaited<ReturnType<typeof pps.listSubscriptions>>["result"]["subscriptions"]> = [];
+  let page = 1;
+  while (true) {
+    const resp = (await pps.listSubscriptions({
+      pageSize: CHUNK,
+      page: page,
+      statuses: "ACTIVE"
+    })).result.subscriptions;
+
+    if (resp) {
+      subIds.push(...resp);
+    }
+    if (!resp || resp.length < CHUNK) {
+      break;
+    }
+  }
+
+  const subs: RecurringSub[] = [];
+
+  for (let i=0; i<subIds?.length; i+=CHUNK) {
+    await Promise.all(subIds.slice(i, i+CHUNK).map(({id}) => {
+      if (id) {
+        return pps.getSubscription({id: id, fields: "plan,product"}).then(({result: sub}) => {
+          const plan = sub.plan?.billingCycles?.[0];
+          if (!sub.id || !sub.startTime || !plan) {
+            return;
+          }
+
+          let freq: "Month" | "Quarter" | "Year" | undefined;
+          const unit = plan.frequency.intervalUnit.toLocaleUpperCase();
+          const count = plan.frequency.intervalCount;
+          if (unit === "MONTH") {
+            if (count === 1) {
+              freq = "Month";
+            } else if (count === 3) {
+              freq = "Quarter";
+            } else if (count === 12) {
+              freq = "Year";
+            }
+          } else if (unit === "YEAR" && count === 1) {
+            freq = "Year";
+          }
+          if (!freq) {
+            throw new Error(`${sub.id}: unknown frequency (${count}, ${unit})`);
+          }
+
+          subs.push({
+            id: sub.id,
+            since: sub.startTime,
+            lead: "GiveWP",
+            email: sub.subscriber?.emailAddress,
+            designation: (des as any)[sub.id] ?? "UNKNOWN",
+            firstName: sub.subscriber?.name?.givenName,
+            lastName: sub.subscriber?.name?.surname,
+            amount: Number(plan.pricingScheme?.fixedPrice?.value),
+            frequency: freq,
+          });
+        });
+      }
+    }));
+  }
+
+  return subs;
+}
 
 
 
@@ -70,6 +223,139 @@ export const stripeGetSubs = async (stripe: StripeConnection, ids: string[], par
   return subs;
 };
 
+export const stripeCondenseSub = (sub: Stripe.Subscription) : RecurringSub => {
+  const customer = sub.customer as Stripe.Customer;
+  const plan = sub.items.data[0].plan;
+
+  // Figure out designation.
+  let designation: string | undefined;
+
+  const prodName = (sub.items.data[0].price.product as Stripe.Product)?.name;
+  const desTo = sub.metadata?.["Designate to"] || sub.metadata?.["Designated to"];
+  const intlProj = sub.metadata?.["International Projects"];
+  const usProj = sub.metadata?.["US Projects"];
+  const other = sub.metadata?.["Other Designation"];
+  const all = [designation, prodName, desTo, intlProj, usProj, other];
+
+  const checkAll = (name: string) => all.some(des => {
+    return des && des.toLocaleLowerCase().includes(name.toLocaleLowerCase());
+  });
+
+  const usNames = [
+    "Brown",
+    "Chuang",
+    "Guthrie",
+    "Henderson",
+    "Huska",
+    "Lamb",
+    "Michalski",
+    "Sluka",
+    "Walton",
+  ];
+  for (const name of usNames) {
+    if (checkAll(name)) {
+      designation = `USA-(${name})`;
+      break;
+    }
+  }
+
+  const canadaNames = [
+    "Anderson",
+    "Faw",
+    "Kostamo",
+    "Richmond"
+  ];
+  for (const name of canadaNames) {
+    if (checkAll(name)) {
+      designation = `Canada-${name}`;
+      break;
+    }
+  }
+
+  if (!designation && checkAll("Social Media and Content Coordinator")) {
+    designation = "Social Media and Content Coordinator (Autumn Ayers)";
+  }
+
+  if (!designation && checkAll("Global Conservation Fund")) {
+    designation = "Global Conservation Fund(GCF)-ARI";
+  }
+
+  if (!designation && checkAll("Costa Rica")) {
+    designation = "Casa Adobe/Costa Rica";
+  }
+
+  if (!designation && checkAll("Church Engagement")) {
+    designation = "USA-Church Engagement";
+  }
+  if (!designation && checkAll("Conservation Internships")) {
+    designation = "USA-Conservation Interns";
+  }
+  if (!designation && checkAll("Florida Conservation Project")) {
+    designation = "USA-Florida Conservation Project";
+  }
+  if (!designation && checkAll("Tennessee Conservation Project")) {
+    designation = "USA-Tennessee Conservation Project";
+  }
+  if (!designation && checkAll("Texas Conservation Project")) {
+    designation = "USA-Texas Conservation Project";
+  }
+
+  if (!designation) {
+    const exactNames = [
+      "Climate Stewards",
+      "Canada",
+      "Kenya"
+    ];
+    for (const name of exactNames) {
+      if (checkAll(name)) {
+        designation = name;
+        break;
+      }
+    }
+  }
+
+  if (!designation && checkAll("International")) {
+    designation = "ARI";
+  }
+
+  if (!designation) {
+    designation = "USA";
+  }
+
+  let frequency: RecurringSub["frequency"] | undefined;
+  if (plan.interval === "month") {
+    if (plan.interval_count === 1) {
+      frequency = "Month";
+    } else if (plan.interval_count === 3) {
+      frequency = "Quarter";
+    }
+  } else if (plan.interval === "year" && plan.interval_count === 1) {
+    frequency = "Year";
+  }
+  if (!frequency) {
+    throw new Error(`${sub.id}: unsupported recurring frequency: every ${plan.interval_count} ${plan.interval}`);
+  }
+  
+  let firstName = customer.metadata?.first_name?.trim() || customer.name?.split(" ")[0];
+  let lastName = customer.metadata?.last_name?.trim() || customer.name?.split(" ").slice(1).join(" ");
+
+  if (!customer.email) {
+    throw new Error(`${sub.id}: missing customer email`);
+  }
+
+  return {
+    id: sub.id,
+    since: Temporal.Instant.fromEpochMilliseconds(sub.created*1000).toString(),
+    lead: customer.description?.includes("GiveWP")? "GiveWP" : "LYP",
+    email: emailNorm(customer.email),
+    designation: designation,
+    firstName: firstName,
+    lastName: lastName,
+    amount: (plan.amount ?? NaN) / 100,
+    frequency: frequency,
+  }
+}
+
 
 
 
@@ -101,44 +387,54 @@ export const sfConnect = async () => {
   return sf;
 }
 
+export type SfContactRecord = {
+  id: string,
+  first?: string,
+  last?: string,
+  emails: string[],
+}
+
+export const sfEmailFields = [
+  "npe01__HomeEmail__c",
+  "npe01__WorkEmail__c",
+  "npe01__AlternateEmail__c"
+];
+
 export const sfEmailsToContacts = async (sf: SalesforceConnection, emails: string[]) => {
   const sfChunk = 50;
-  const uniqueEmails = [...new Set(emails.filter(email => !!email))];
+  const normEmails = emails.map(email => emailNorm(email));
+  const uniqueEmails = [...new Set(normEmails.filter(email => !!email))];
  
-  const fields = [
-    "Email",
-    "npe01__HomeEmail__c",
-    "npe01__WorkEmail__c",
-    "npe01__AlternateEmail__c"
-  ];
-
-  const emailToContactMap = new Map<string,string>();
+  const emailToContactMap = new Map<string, SfContactRecord>();
 
   for (let i = 0; i < uniqueEmails.length; i += sfChunk) {
     // Query SF for contacts that have the given emails.
-    const emailStr = uniqueEmails.slice(i, i + sfChunk).map(email => `'${email}'`).join(",");
+    const emailStr = "(" + uniqueEmails.slice(i, i + sfChunk).map(email => `'${email}'`).join(",") + ")";
     const soql = `
-      SELECT Id, ${fields.join(", ")}
+      SELECT Id, ${sfEmailFields.join(", ")}, FirstName, LastName
       FROM Contact
-      WHERE ${fields.map(field => field + " IN " + emailStr).join(" OR ")}
+      WHERE ${sfEmailFields.map(efield => efield + " IN " + emailStr).join(" OR ")}
       LIMIT 2000
     `;
-    console.log(soql); //DEBUG_161
     const res = await sf.query(soql);
 
     // Build mapping from emails to Salesforce contacts.
     res.records.forEach(record => {
-      for(const field of fields) {
-        if (record[field] && record.Id) {
-          emailToContactMap.set(record[field].toLocaleLowerCase(), record.Id);
+      for(const efield of sfEmailFields) {
+        const nemail = emailNorm(record[efield]);
+        if (nemail && record.Id) {
+          emailToContactMap.set(nemail, {
+            id: record.Id,
+            first: record.FirstName,
+            last: record.LastName,
+            emails: sfEmailFields.map(efield => emailNorm(record[efield])).filter(nemail => !!nemail) as string[],
+          });
         }
       }
     });
   }
 
-  return emails.map(email =>
-    (email && emailToContactMap.get(email.toLocaleLowerCase())) || "UNKNOWN"
-  );
+  return normEmails.map(nemail => emailToContactMap.get(nemail || ""));
 }
 
 
@@ -226,8 +522,11 @@ const getSubsHelper = async (path: string, msg: string) => {
       throw new Error(`${msg}: ${resp.status}`);
     }
     return (resp.json() as Promise<any>).then(page => {
-      // Try to fix up names before returning the data.
       for (const sub of page.Results as CMSubscriber[]) {
+        // Normalize emails before returning the data.
+        sub.EmailAddress = emailNorm(sub.EmailAddress) as string;
+
+        // Try to fix up names before returning the data.
         let name = sub.Name;
         if (sub.CustomFields) {
           let first: string | undefined;
@@ -372,10 +671,10 @@ export const cmGetSubs = async (params?: CMGetSubsParams) => {
       );
       // Add each record to subscriber's list of subscriptions.
       for (const sub of subs) {
-        const normEmail = sub.EmailAddress.toLocaleLowerCase();
-        const arr = emailToSubsMap.get(normEmail) ?? [];
+        const nemail = emailNorm(sub.EmailAddress) as string;
+        const arr = emailToSubsMap.get(nemail) ?? [];
         if (arr.length === 0) {
-          emailToSubsMap.set(normEmail, arr);
+          emailToSubsMap.set(nemail, arr);
         }
 
         arr.push({

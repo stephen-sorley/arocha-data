@@ -7,9 +7,10 @@
     "run": "main.ts"
   },
   "dependencies": {
+    "@paypal/paypal-server-sdk": "^2.4.0",
     "@types/node": "^26.2.0",
     "dotenv": "^17.4.2",
-    "jsforce": "^3.10.19",
+    "jsforce": "^3.10.22",
     "stripe": "^22.5.0"
   }
 }
