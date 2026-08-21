@@ -23,6 +23,10 @@ import {
   type RecurringSub
 } from "./utils.ts";
 
+import {
+  emailNorm,
+} from "./email.ts";
+
 
 export type PaypalConnection = ReturnType<typeof paypalConnect>;
 
@@ -93,7 +97,7 @@ export const paypalCondensedSubs = async (pp: PaypalConnection) => {
             id: sub.id,
             since: sub.startTime,
             lead: "GiveWP",
-            email: sub.subscriber?.emailAddress,
+            email: emailNorm(sub.subscriber?.emailAddress),
             designation: (des as any)[sub.id] ?? "UNKNOWN",
             firstName: sub.subscriber?.name?.givenName,
             lastName: sub.subscriber?.name?.surname,
