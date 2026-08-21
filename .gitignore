@@ -19,3 +19,8 @@ npm-debug.log*
 # environment variables
 .env
 .env.*
+
+# astro/cloudflare
+dist/
+.astro/
+.wrangler/
