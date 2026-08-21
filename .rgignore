@@ -1,0 +1,4 @@
+public/
+*.svg
+package*.json
+worker-configuration.d.ts
