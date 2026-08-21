@@ -24,6 +24,7 @@ import type { RecurringSub } from "./lib/utils.ts";
 
 import {
   emailEncrypt,
+  emailNorm,
 } from "./lib/email.ts";
 
 import {
@@ -77,7 +78,7 @@ for (const sub of cnp) {
     id: sub["Donor Portal Link"],
     since: sub.Since,
     lead: "CnP",
-    email: sub.Email,
+    email: emailNorm(sub.Email),
     designation: sub.Designation,
     firstName: sub["First Name"],
     lastName: sub["Last Name"],
@@ -95,7 +96,10 @@ subs.sort(({since: a}, {since: b}) => b.localeCompare(a));
 // Get Salesforce contacts for each listed email.
 const sf = await sfConnect();
 start = performance.now();
-const contacts = await sfEmailsToContacts(sf, subs.map(sub => sub.email as string));
+const {
+  emailToContact,
+  accountToEmails
+} = await sfEmailsToContacts(sf, subs.map(sub => sub.email as string));
 console.error(`Found SF contacts for ${subs.length} emails in ${(performance.now() - start)/1000}s`);
 
 
@@ -109,6 +113,7 @@ const headers = [
   "Yearly Value",
   "Since",
   "CRM Contact ID",
+  "CRM Account ID",
   "Processor Subscription ID",
   "Link ID",
   "Lead",
@@ -118,60 +123,80 @@ let w = createWriteStream("./private/recurring.csv");
 
 w.write(headers.join(",") + "\n");
 
-const subMap: Record<string,any> = {};
-const emailMap: Record<string,string> = {};
+const accountToSub: Record<string,any> = {};
 
-for (let i = 0; i < subs.length; ++i) {
-  const sub = subs[i];
-  
-  const npayments = sub.frequency === "Year"? 1 : (sub.frequency === "Quarter"? 4 : 12);
-  
+for (const sub of subs) {
   const encEmail = emailEncrypt(sub.email);
-  if (!encEmail) {
+  if (!sub.email || !encEmail) {
     throw new Error(`${sub.id}: missing customer email / encryption failed`);
   }
 
+  const contact = emailToContact.get(sub.email);
+
+  if (!contact || !contact.account) {
+    throw new Error(`${sub.id}: missing SF contact or account for ${sub.firstName} ${sub.lastName} <${sub.email}>`);
+  }
+
+  const npayments = sub.frequency === "Year"? 1 : (sub.frequency === "Quarter"? 4 : 12);
+  
+  const amount = sub.amount.toFixed(2);
+  const yearlyValue = (sub.amount*npayments).toFixed(2);
+  const since = sub.since.split("T")[0];
+  const firstName = (contact.first || sub.firstName || "").trim();
+  const lastName = (contact.last || sub.lastName || "").trim();
+
   const line: string[] = [
-    contacts[i]?.first || sub.firstName || "",
-    contacts[i]?.last || sub.lastName || "",
-    sub.email as string,
+    firstName, //prefer the name in Salesforce, if it's there
+    lastName, //prefer the name in Salesforce, if it's there
+    sub.email,
     sub.designation,
-    sub.amount.toFixed(2),
+    amount,
     sub.frequency,
-    (sub.amount*npayments).toFixed(2),
-    sub.since.split("T")[0],
-    contacts[i]?.id || "UNKNOWN",
+    yearlyValue,
+    since,
+    contact.id,
+    contact.account,
     sub.id,
     encEmail,
     sub.lead
   ];
   w.write(line.join(",") + "\n");
 
-  if (!subMap[encEmail]) {
-    subMap[encEmail] = {
-      name: (line[0] + " " + line[1]).trim(),
-      subs: [],
+  const acctSubs = accountToSub[contact.account]?.subs || [];
+  if (acctSubs.length === 0) {
+    accountToSub[contact.account] = {
+      name: (firstName + " " + lastName).trim(),
+      subs: acctSubs,
     };
   }
-  subMap[encEmail].subs.push({
-    designation: line[3],
-    amount: line[4],
-    frequency: line[5],
-    since: line[7],
-    id: line[9],
-    lead: line[11],
+  acctSubs.push({
+    designation: sub.designation,
+    amount: amount,
+    frequency: sub.frequency,
+    since: since,
+    contactId: contact.id,
+    lead: sub.lead,
   });
-
-  if (contacts[i]) {
-    for (const nemail of (contacts[i] as SfContactRecord).emails) {
-      if (nemail) {
-        emailMap[emailEncrypt(nemail) as string] ||= encEmail;
-      }
-    }
-  }
 }
 
 w.end();
 
-writeFile("./private/recurring.json", JSON.stringify(subMap, null, 2), ()=>{});
-writeFile("./private/email-map.json", JSON.stringify(emailMap, null, 2), ()=>{});
+writeFile("./private/recurring.json", JSON.stringify(accountToSub, null, 2), ()=>{});
+
+
+const emailToAccount: Record<string,string> = {};
+for (const [account, emails] of accountToEmails.entries()) {
+  for (const email of emails) {
+    const encEmail = emailEncrypt(email);
+    if (emailToAccount[email]) {
+      throw new Error(`duplicate email detected: ${email}`);
+    }
+    if (!encEmail) {
+      throw new Error(`encryption failed: ${email}`);
+    }
+    emailToAccount[encEmail] = account;
+  }
+}
+writeFile("./private/email-map.json", JSON.stringify(emailToAccount, null, 2), ()=>{});
+
+console.error(`\nFinished: ${subs.length} subscriptions, ${Object.keys(emailToAccount).length} emails, ${accountToEmails.size} accounts`);

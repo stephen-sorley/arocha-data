@@ -38,9 +38,9 @@ export const sfConnect = async () => {
 
 export type SfContactRecord = {
   id: string,
+  account: string,
   first?: string,
   last?: string,
-  emails: string[],
 }
 
 export const sfEmailFields = [
@@ -49,44 +49,74 @@ export const sfEmailFields = [
   "npe01__AlternateEmail__c"
 ];
 
-export type HouseholdEmails = {
-  account: string,
-  emails: Set<string>,
-}
-
 export const sfEmailsToContacts = async (sf: SalesforceConnection, emails: string[]) => {
-  const sfChunk = 50;
+  const CHUNK = 50;
   const normEmails = emails.map(email => emailNorm(email));
   const uniqueEmails = [...new Set(normEmails.filter(email => !!email))];
  
   const emailToContactMap = new Map<string, SfContactRecord>();
+  const accountToEmailsMap = new Map<string, Set<string>>();
 
-  for (let i = 0; i < uniqueEmails.length; i += sfChunk) {
+  const emailLists: string[] = [];
+  for (let i = 0; i < uniqueEmails.length; i += CHUNK) {
+    emailLists.push(
+      `(${uniqueEmails.slice(i, i + CHUNK).map(email => `'${email}'`).join(",")})`
+    );
+  }
+
+  await Promise.all(emailLists.map(async (emailList) => {
     // Query SF for contacts that have the given emails.
-    const emailStr = "(" + uniqueEmails.slice(i, i + sfChunk).map(email => `'${email}'`).join(",") + ")";
-    const soql = `
-      SELECT Id, ${sfEmailFields.join(", ")}, FirstName, LastName
-      FROM Contact
-      WHERE ${sfEmailFields.map(efield => efield + " IN " + emailStr).join(" OR ")}
-      LIMIT 2000
-    `;
+    const soql =
+     `SELECT Id,AccountId,FirstName,LastName,${sfEmailFields.join(",")} FROM Contact
+      WHERE ${sfEmailFields.map(efield => efield + " IN " + emailList).join(" OR ")}`
+    ;
     const res = await sf.query(soql);
 
     // Build mapping from emails to Salesforce contacts.
+    const accountIds = new Set<string>();
     res.records.forEach(record => {
-      for(const efield of sfEmailFields) {
-        const nemail = emailNorm(record[efield]);
-        if (nemail && record.Id) {
-          emailToContactMap.set(nemail, {
-            id: record.Id,
-            first: record.FirstName,
-            last: record.LastName,
-            emails: sfEmailFields.map(efield => emailNorm(record[efield])).filter(nemail => !!nemail) as string[],
-          });
-        }
+      if (!record.Id || !record.AccountId) return;
+
+      // Make a list of unique accounts that we've seen.
+      accountIds.add(record.AccountId);
+
+      const contactEmails = sfEmailFields.map(efield => emailNorm(record[efield])).filter(nemail => !!nemail) as string[];
+
+      // Build mapping from email to contact details.
+      for (const email of contactEmails) {
+        emailToContactMap.set(email, {
+          id: record.Id,
+          account: record.AccountId,
+          first: record.FirstName,
+          last: record.LastName,
+        });
       }
     });
-  }
 
-  return normEmails.map(nemail => emailToContactMap.get(nemail || ""));
+    const acctSoql =
+     `SELECT Id,AccountId,${sfEmailFields.join(",")} FROM Contact
+      WHERE AccountId IN ('${[...accountIds].join("','")}')`
+    ;
+    return sf.query(acctSoql).then((res) => {
+      res.records.forEach(record => {
+        // Upsert entry in accountToEmailsMap.
+        const emailSet = accountToEmailsMap.get(record.AccountId) ?? new Set<string>();
+        if (emailSet.size === 0) {
+          accountToEmailsMap.set(record.AccountId, emailSet);
+        }
+
+        for (const efield of sfEmailFields) {
+          const nemail = emailNorm(record[efield]);
+          if (nemail) {
+            emailSet.add(nemail);
+          }
+        }
+      });
+    });
+  }));
+
+  return {
+    emailToContact: emailToContactMap,
+    accountToEmails: accountToEmailsMap,
+  };
 }
