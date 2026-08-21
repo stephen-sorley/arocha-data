@@ -18,23 +18,31 @@
  * handle those by importing "cnp.json", which we made by hand.
  */
 
+import { createWriteStream, writeFile } from "node:fs";
+
+import type { RecurringSub } from "./lib/utils.ts";
+
+import {
+  emailEncrypt,
+} from "./lib/email.ts";
+
+import {
+  paypalConnect,
+  paypalCondensedSubs,
+} from "./lib/paypal.ts";
+
 import {
   stripeConnect,
   stripeCondenseSub,
-  type RecurringSub,
+} from "./lib/stripe.ts";
 
+import {
   sfConnect,
   sfEmailsToContacts,
-
-  paypalConnect,
-  paypalCondensedSubs,
-
-  emailEncrypt,
   type SfContactRecord
-} from "./lib/utils.ts";
+} from "./lib/salesforce.ts";
 
 import cnp from "./private/cnp.json" with {type: "json"};
-import { createWriteStream, writeFile } from "node:fs";
 
   
 const subs: RecurringSub[] = [];

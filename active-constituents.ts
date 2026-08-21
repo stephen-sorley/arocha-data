@@ -5,10 +5,8 @@
  * want to keep.
  */
 
-import {
-  sfConnect,
-  cmGetSubs,
-} from "./lib/utils.ts"
+import { sfConnect } from "./lib/salesforce.ts";
+import { cmGetSubs } from "./lib/campaign-monitor.ts";
 
 
 // Set parameters for what contacts and transactions we'll keep.

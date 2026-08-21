@@ -22,9 +22,10 @@
  */
 
 import { parseArgs } from "node:util";
-import { cmGetSubs } from "./lib/utils.ts"
-
-import type { CMSubscriber } from "./lib/utils.ts";
+import {
+  cmGetSubs,
+  type CMSubscriber
+} from "./lib/campaign-monitor.ts"
 
 const {values} = parseArgs({
   allowPositionals: false,

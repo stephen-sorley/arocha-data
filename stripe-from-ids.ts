@@ -4,7 +4,7 @@
 
 import type Stripe from "stripe";
 import { parseArgs } from "node:util";
-import { stripeConnect, stripeGetSubs } from "./lib/utils.ts";
+import { stripeConnect, stripeGetSubs } from "./lib/stripe.ts";
 
 const {positionals} = parseArgs({
   allowPositionals: true,
