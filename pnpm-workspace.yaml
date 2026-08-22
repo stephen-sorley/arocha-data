@@ -1,4 +1,9 @@
 allowBuilds:
   core-js: true
   core-js-pure: true
+  esbuild: true
   stripe-node: true
+  workerd: true
+minimumReleaseAgeExclude:
+  - '@astrojs/cloudflare@14.2.3'
+  - '@astrojs/internal-helpers@0.10.4'

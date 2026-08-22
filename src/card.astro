@@ -1,0 +1,68 @@
+---
+import type { Polymorphic } from "astro/types";
+
+export type Props<Tag extends "section" | "form"> = Polymorphic<{ as: Tag }> & {
+  title?: string,
+
+  level?: "h2" | "h3" | "h4" | "h5" | "h6",
+
+  align?: "start" | "center" | "end",
+}
+
+const {
+  as: Tag = "section",
+  title,
+  level = "h2",
+  align = "start",
+  class: className,
+  ...rest
+} = Astro.props;
+
+const H = level;
+---
+<Tag class:list={[className]} {...rest}>
+  <H class:list={["header", align]}>{title}</H>
+  <div class="body">
+    <slot />
+  </div>
+</Tag>
+
+
+<style> @layer components {
+  :is(section, form) {
+    border-radius: var(--radius-md);
+    box-shadow:
+      0 2px 2px 0    rgb(0 0 0 / .14),
+      0 3px 1px -2px rgb(0 0 0 / .2),
+      0 1px 5px 0    rgb(0 0 0 / .12);
+    overflow: clip;
+
+    display: grid;
+    grid-template-rows: min-content auto;
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    &.center { text-align: center; }
+    &.start {  text-align: start; }
+    &.end {    text-align: end; }
+    padding-inline: var(--sp-sm);
+    line-height: 2;
+
+    --fg: var(--color-fg);
+    --bg: var(--color-bg);
+    --tint: var(--fg);
+    --tint-ratio: 3%;
+    color: var(--fg);
+    background-color: color-mix(in oklch, var(--bg), var(--tint) var(--tint-ratio));
+    border-block-end: 1px solid color-mix(in oklch, var(--bg), var(--tint) calc(var(--tint-ratio) * 2));
+
+    font-weight: 500;
+    font-size: var(--text-xl);
+  }
+
+  .body {
+    padding: var(--sp-sm);
+    width: 100%;
+  }
+} </style>

@@ -1,0 +1,161 @@
+---
+import Layout from "../layout.astro";
+import Card from "../card.astro";
+import Spinner from "../spinner.astro";
+
+import {
+
+} from "../../lib/stripe.ts";
+
+import emailMap from "../../private/email-map.json" with {type: "json"};
+import subInfo from "../../private/recurring.json" with {type: "json"};
+import type {
+  ManagerEmailMap,
+  ManagerSubInfo
+} from "../../private/manager.d.ts";
+const managerEmailMap = emailMap as ManagerEmailMap;
+const managerSubInfo = subInfo as ManagerSubInfo;
+
+export const prerender = false;
+
+const {
+  token
+} = Astro.params;
+
+const err = new Response("Account not found", { status: 404 });
+
+if (!token) {
+  console.error("account retrieve error: token missing");
+  return err;
+}
+const account = managerEmailMap[token];
+if (!account) {
+  console.error(`account retrieve error: token ${token} not found`);
+  return err;
+}
+const subs = managerSubInfo[account];
+if (!subs) {
+  console.error(`account retrieve error: account ${account} not found`);
+  return err;
+}
+
+const adminParam = Astro.url.searchParams.get("admin")?.toLocaleLowerCase();
+const adminLinks = adminParam && !["false","no","0","null"].includes(adminParam);
+
+const accountHref = `https://arochausa.lightning.force.com/lightning/r/Account/${account}/related/npe03__RecurringDonations__r/view`;
+const contactLinks = 
+  subs.map(({contactId}) => (
+    `https://arochausa.lightning.force.com/lightning/r/Contact/${contactId}/view`
+  ));
+
+const toFancyDate = (dateStr: string) => {
+  const [year, month, day] = dateStr.split("-");
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+};
+
+const idToProc = (id: string) => {
+  if (id.startsWith("https"))
+    return "cnp";
+  if (id.startsWith("I-"))
+    return "paypal";
+  return "stripe";
+}
+
+
+---
+
+<Layout title="Legacy Donation Manager">
+  <div class="container">
+    {subs.map(sub => (
+    <Card class="sub" level="h2" align="start"
+      title={`$${sub.amount} / ${sub.frequency.toLocaleLowerCase()}`}
+      data-id={sub.processorId}
+      data-proc={idToProc(sub.processorId)}
+      data-status="unknown"
+    >
+      <div class="inside">
+        <div>{`For: ${sub.designation}`}</div>
+        <div>{`Since: ${toFancyDate(sub.since)}`}</div>
+      </div>
+      <a class="cnp primary" href={sub.processorId} target="_blank">
+        Manage at Click and Pledge
+      </a>
+      <button class="default" type="button">
+        Cancel Recurring Gift
+      </button>
+    </Card>
+    ))}
+  </div>
+</Layout>
+
+<style>
+
+.container {
+  align-self: start;
+  justify-self: center;
+  width: 100%;
+  
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(30ch, 1fr));
+  gap: var(--sp-xl);
+  justify-content: center;
+}
+.admin, .sub {
+  font-family: var(--font-main);
+}
+.admin > :global(.header) {
+  --fg: var(--color-bg);
+  --bg: var(--color-alt3);
+}
+.sub {
+  &[data-status="unknown"] {
+    &> :global(.header) {
+      --tint: var(--color-warning);
+      --tint-ratio: 10%;
+    }
+  }
+  &[data-status="active"] {
+    &> :global(.header) {
+      --tint: var(--color-success);
+      --tint-ratio: 8%;
+    }
+  }
+  &[data-status="cancelled"] {
+    &> :global(.header) {
+      --tint: var(--color-error);
+      --tint-ratio: 7%;
+    }
+  }
+
+  &> :global(.body) {
+    padding-block-start: var(--sp-xs);
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr min-content;
+    gap: var(--sp-xs);
+  }
+  div.inside {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    width: 100%;
+    gap: var(--sp-xs);
+
+    div {
+      flex: 0 1 auto;
+    }
+  }
+  a.cnp { display: none; }
+  button { display: flex; }
+  &[data-proc="cnp"] {
+    a.cnp { display: block; }
+    button { display: none; }
+  }
+}
+</style>

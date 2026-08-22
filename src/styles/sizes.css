@@ -1,0 +1,140 @@
+/**
+ * Copy fluid design calcs from website-cccgainesville-org project - these
+ * were originally based on https://utopia.fyi.
+ *
+ * Config vars, with default values.
+ *  --f-max-w-px: 1440;  // max screen width in px
+ *  --f-min-w-px: 320;   // min screen width in px
+ *  --f-max-font-px: 18; // max font size in px
+ *  --f-min-font-px: 16; // min font size in px
+ *  --f-min-rat: 1.2;    // min growth ratio (unitless)
+ *  --f-max-rat: 1.25;   // max growth ratio (unitless)
+ *
+ */
+
+ @layer base { :root {
+  --f-min-rat: 1.2;
+  --f-max-rat: 1.25;
+  
+  /* Convert config vars from px to rem (leave unitless for now). */
+  --f-max-w: calc(var(--f-max-w-px, 1200) / 16);
+  --f-min-w: calc(var(--f-min-w-px, 320) / 16);
+  --f-max-font: calc(var(--f-max-font-px, 18) / 16);
+  --f-min-font: calc(var(--f-min-font-px, 16) / 16);
+
+  /* Precalculate some common params for the clamps below. */
+  --f-minus: calc(-1 * var(--f-min-w));
+  --f-w: calc(var(--f-max-w) - var(--f-min-w));
+
+  /* Font step sizes. Min/max flip for negative exponents. */
+  --f-n2-min: calc(var(--f-min-font) * pow(var(--f-max-rat), -2));
+  --f-n2-max: calc(var(--f-max-font) * pow(var(--f-min-rat), -2));
+
+  --f-n1-min: calc(var(--f-min-font) / var(--f-max-rat)); /* -1 power */
+  --f-n1-max: calc(var(--f-max-font) / var(--f-min-rat));
+
+  --f-0-min:  var(--f-min-font); /* 0 power */
+  --f-0-max:  var(--f-max-font);
+  
+  --f-1-min:  calc(var(--f-min-font) * sqrt(var(--f-min-rat)));
+  --f-1-max:  calc(var(--f-max-font) * sqrt(var(--f-max-rat)));
+
+  --f-2-min:  calc(var(--f-min-font) * var(--f-min-rat)); /* 1 power */
+  --f-2-max:  calc(var(--f-max-font) * var(--f-max-rat));
+
+  --f-3-min:  calc(var(--f-min-font) * pow(var(--f-min-rat), 2));
+  --f-3-max:  calc(var(--f-max-font) * pow(var(--f-max-rat), 2));
+
+  --f-4-min:  calc(var(--f-min-font) * pow(var(--f-min-rat), 3));
+  --f-4-max:  calc(var(--f-max-font) * pow(var(--f-max-rat), 3));
+
+  --f-5-min:  calc(var(--f-min-font) * pow(var(--f-min-rat), 4));
+  --f-5-max:  calc(var(--f-max-font) * pow(var(--f-max-rat), 4));
+
+  --f-6-min:  calc(var(--f-min-font) * pow(var(--f-min-rat), 5));
+  --f-6-max:  calc(var(--f-max-font) * pow(var(--f-max-rat), 5));
+
+  --f-7-min:  calc(var(--f-min-font) * pow(var(--f-min-rat), 6));
+  --f-7-max:  calc(var(--f-max-font) * pow(var(--f-max-rat), 6));
+
+  --f-8-min:  calc(var(--f-min-font) * pow(var(--f-min-rat), 7));
+  --f-8-max:  calc(var(--f-max-font) * pow(var(--f-max-rat), 7));
+
+  --f-9-min:  calc(var(--f-min-font) * pow(var(--f-min-rat), 8));
+  --f-9-max:  calc(var(--f-max-font) * pow(var(--f-max-rat), 8));
+
+  --f-10-min: calc(var(--f-min-font) * pow(var(--f-min-rat), 9));
+  --f-10-max: calc(var(--f-max-font) * pow(var(--f-max-rat), 9));
+
+
+  /* Space step sizes. */
+  --fs-n3-min: calc(var(--f-min-font) * 0.25);
+  --fs-n3-max: calc(var(--f-max-font) * 0.25);
+
+  --fs-n2-min: calc(var(--f-min-font) * 0.5);
+  --fs-n2-max: calc(var(--f-max-font) * 0.5);
+  
+  --fs-n1-min: calc(var(--f-min-font) * 0.75);
+  --fs-n1-max: calc(var(--f-max-font) * 0.75);
+
+  --fs-0-min:  calc(var(--f-min-font));
+  --fs-0-max:  calc(var(--f-max-font));
+
+  --fs-1-min:  calc(var(--f-min-font) * 1.5);
+  --fs-1-max:  calc(var(--f-max-font) * 1.5);
+
+  --fs-2-min:  calc(var(--f-min-font) * 2);
+  --fs-2-max:  calc(var(--f-max-font) * 2);
+
+  --fs-3-min:  calc(var(--f-min-font) * 3);
+  --fs-3-max:  calc(var(--f-max-font) * 3);
+
+  --fs-4-min:  calc(var(--f-min-font) * 4);
+  --fs-4-max:  calc(var(--f-max-font) * 4);
+
+  --fs-5-min:  calc(var(--f-min-font) * 6);
+  --fs-5-max:  calc(var(--f-max-font) * 6);
+
+  /* Clamp each step, assign it to theme vars.
+   *
+   *
+   * The "spacing" values can be used wherever you'd normally put a length value.
+   *
+   * For example, to set padding, you can do "padding: var(--sp-sm)".
+   */
+  --text-xs:   clamp(var(--f-n2-min) * 1rem, ((var(--f-minus) * ((var(--f-n2-max) - var(--f-n2-min)) / var(--f-w)) + var(--f-n2-min)) * 1rem) + ((var(--f-n2-max) - 1) / var(--f-w) * 100vi), var(--f-n2-max) * 1rem);
+  --text-sm:   clamp(var(--f-n1-min) * 1rem, ((var(--f-minus) * ((var(--f-n1-max) - var(--f-n1-min)) / var(--f-w)) + var(--f-n1-min)) * 1rem) + ((var(--f-n1-max) - 1) / var(--f-w) * 100vi), var(--f-n1-max) * 1rem);
+  --text-base: clamp(var( --f-0-min) * 1rem, ((var(--f-minus) * ((var( --f-0-max) - var( --f-0-min)) / var(--f-w)) + var( --f-0-min)) * 1rem) + ((var( --f-0-max) - 1) / var(--f-w) * 100vi), var( --f-0-max) * 1rem);
+  --text-lg:   clamp(var( --f-1-min) * 1rem, ((var(--f-minus) * ((var( --f-1-max) - var( --f-1-min)) / var(--f-w)) + var( --f-1-min)) * 1rem) + ((var( --f-1-max) - 1) / var(--f-w) * 100vi), var( --f-1-max) * 1rem);
+  --text-xl:   clamp(var( --f-2-min) * 1rem, ((var(--f-minus) * ((var( --f-2-max) - var( --f-2-min)) / var(--f-w)) + var( --f-2-min)) * 1rem) + ((var( --f-2-max) - 1) / var(--f-w) * 100vi), var( --f-2-max) * 1rem);
+  --text-2xl:  clamp(var( --f-3-min) * 1rem, ((var(--f-minus) * ((var( --f-3-max) - var( --f-3-min)) / var(--f-w)) + var( --f-3-min)) * 1rem) + ((var( --f-3-max) - 1) / var(--f-w) * 100vi), var( --f-3-max) * 1rem);
+  --text-3xl:  clamp(var( --f-4-min) * 1rem, ((var(--f-minus) * ((var( --f-4-max) - var( --f-4-min)) / var(--f-w)) + var( --f-4-min)) * 1rem) + ((var( --f-4-max) - 1) / var(--f-w) * 100vi), var( --f-4-max) * 1rem);
+  --text-4xl:  clamp(var( --f-5-min) * 1rem, ((var(--f-minus) * ((var( --f-5-max) - var( --f-5-min)) / var(--f-w)) + var( --f-5-min)) * 1rem) + ((var( --f-5-max) - 1) / var(--f-w) * 100vi), var( --f-5-max) * 1rem);
+  --text-5xl:  clamp(var( --f-6-min) * 1rem, ((var(--f-minus) * ((var( --f-6-max) - var( --f-6-min)) / var(--f-w)) + var( --f-6-min)) * 1rem) + ((var( --f-6-max) - 1) / var(--f-w) * 100vi), var( --f-6-max) * 1rem);
+  --text-6xl:  clamp(var( --f-7-min) * 1rem, ((var(--f-minus) * ((var( --f-7-max) - var( --f-7-min)) / var(--f-w)) + var( --f-7-min)) * 1rem) + ((var( --f-7-max) - 1) / var(--f-w) * 100vi), var( --f-7-max) * 1rem);
+  --text-7xl:  clamp(var( --f-8-min) * 1rem, ((var(--f-minus) * ((var( --f-8-max) - var( --f-8-min)) / var(--f-w)) + var( --f-8-min)) * 1rem) + ((var( --f-8-max) - 1) / var(--f-w) * 100vi), var( --f-8-max) * 1rem);
+  --text-8xl:  clamp(var( --f-9-min) * 1rem, ((var(--f-minus) * ((var( --f-9-max) - var( --f-9-min)) / var(--f-w)) + var( --f-9-min)) * 1rem) + ((var( --f-9-max) - 1) / var(--f-w) * 100vi), var( --f-9-max) * 1rem);
+  --text-9xl:  clamp(var(--f-10-min) * 1rem, ((var(--f-minus) * ((var(--f-10-max) - var(--f-10-min)) / var(--f-w)) + var(--f-10-min)) * 1rem) + ((var(--f-10-max) - 1) / var(--f-w) * 100vi), var(--f-10-max) * 1rem);
+
+  --text-base-lg:  clamp(var( --f-0-min) * 1rem, ((var(--f-minus) * ((var( --f-1-max) - var( --f-0-min)) / var(--f-w)) + var( --f-0-min)) * 1rem) + ((var( --f-1-max) - 1) / var(--f-w) * 100vi), var( --f-1-max) * 1rem);
+  --text-base-2xl: clamp(var( --f-0-min) * 1rem, ((var(--f-minus) * ((var( --f-3-max) - var( --f-0-min)) / var(--f-w)) + var( --f-0-min)) * 1rem) + ((var( --f-3-max) - 1) / var(--f-w) * 100vi), var( --f-3-max) * 1rem);
+
+  --sp-3xs: clamp(var(--fs-n3-min) * 1rem, ((var(--f-minus) * ((var(--fs-n3-max) - var(--fs-n3-min)) / var(--f-w)) + var(--fs-n3-min)) * 1rem) + ((var(--fs-n3-max) - 1) / var(--f-w) * 100vi), var(--fs-n3-max) * 1rem);
+  --sp-2xs: clamp(var(--fs-n2-min) * 1rem, ((var(--f-minus) * ((var(--fs-n2-max) - var(--fs-n2-min)) / var(--f-w)) + var(--fs-n2-min)) * 1rem) + ((var(--fs-n2-max) - 1) / var(--f-w) * 100vi), var(--fs-n2-max) * 1rem);
+  --sp-xs:  clamp(var(--fs-n1-min) * 1rem, ((var(--f-minus) * ((var(--fs-n1-max) - var(--fs-n1-min)) / var(--f-w)) + var(--fs-n1-min)) * 1rem) + ((var(--fs-n1-max) - 1) / var(--f-w) * 100vi), var(--fs-n1-max) * 1rem);
+  --sp-sm:  clamp(var( --fs-0-min) * 1rem, ((var(--f-minus) * ((var( --fs-0-max) - var( --fs-0-min)) / var(--f-w)) + var( --fs-0-min)) * 1rem) + ((var( --fs-0-max) - 1) / var(--f-w) * 100vi), var( --fs-0-max) * 1rem);
+  --sp-md:  clamp(var( --fs-1-min) * 1rem, ((var(--f-minus) * ((var( --fs-1-max) - var( --fs-1-min)) / var(--f-w)) + var( --fs-1-min)) * 1rem) + ((var( --fs-1-max) - 1) / var(--f-w) * 100vi), var( --fs-1-max) * 1rem);
+  --sp-lg:  clamp(var( --fs-2-min) * 1rem, ((var(--f-minus) * ((var( --fs-2-max) - var( --fs-2-min)) / var(--f-w)) + var( --fs-2-min)) * 1rem) + ((var( --fs-2-max) - 1) / var(--f-w) * 100vi), var( --fs-2-max) * 1rem);
+  --sp-xl:  clamp(var( --fs-3-min) * 1rem, ((var(--f-minus) * ((var( --fs-3-max) - var( --fs-3-min)) / var(--f-w)) + var( --fs-3-min)) * 1rem) + ((var( --fs-3-max) - 1) / var(--f-w) * 100vi), var( --fs-3-max) * 1rem);
+  --sp-2xl: clamp(var( --fs-4-min) * 1rem, ((var(--f-minus) * ((var( --fs-4-max) - var( --fs-4-min)) / var(--f-w)) + var( --fs-4-min)) * 1rem) + ((var( --fs-4-max) - 1) / var(--f-w) * 100vi), var( --fs-4-max) * 1rem);
+  --sp-3xl: clamp(var( --fs-5-min) * 1rem, ((var(--f-minus) * ((var( --fs-5-max) - var( --fs-5-min)) / var(--f-w)) + var( --fs-5-min)) * 1rem) + ((var( --fs-5-max) - 1) / var(--f-w) * 100vi), var( --fs-5-max) * 1rem);
+
+  --sp-3xs-2xs: clamp(var(--fs-n3-min) * 1rem, ((var(--f-minus) * ((var(--fs-n2-max) - var(--fs-n3-min)) / var(--f-w)) + var(--fs-n3-min)) * 1rem) + ((var(--fs-n2-max) - 1) / var(--f-w) * 100vi), var(--fs-n2-max) * 1rem);
+  --sp-2xs-xs:  clamp(var(--fs-n2-min) * 1rem, ((var(--f-minus) * ((var(--fs-n1-max) - var(--fs-n2-min)) / var(--f-w)) + var(--fs-n2-min)) * 1rem) + ((var(--fs-n1-max) - 1) / var(--f-w) * 100vi), var(--fs-n1-max) * 1rem);
+  --sp-xs-sm:   clamp(var(--fs-n1-min) * 1rem, ((var(--f-minus) * ((var( --fs-0-max) - var(--fs-n1-min)) / var(--f-w)) + var(--fs-n1-min)) * 1rem) + ((var( --fs-0-max) - 1) / var(--f-w) * 100vi), var( --fs-0-max) * 1rem);
+  --sp-sm-md:   clamp(var( --fs-0-min) * 1rem, ((var(--f-minus) * ((var( --fs-1-max) - var( --fs-0-min)) / var(--f-w)) + var( --fs-0-min)) * 1rem) + ((var( --fs-1-max) - 1) / var(--f-w) * 100vi), var( --fs-1-max) * 1rem);
+  --sp-md-lg:   clamp(var( --fs-1-min) * 1rem, ((var(--f-minus) * ((var( --fs-2-max) - var( --fs-1-min)) / var(--f-w)) + var( --fs-1-min)) * 1rem) + ((var( --fs-2-max) - 1) / var(--f-w) * 100vi), var( --fs-2-max) * 1rem);
+  --sp-lg-xl:   clamp(var( --fs-2-min) * 1rem, ((var(--f-minus) * ((var( --fs-3-max) - var( --fs-2-min)) / var(--f-w)) + var( --fs-2-min)) * 1rem) + ((var( --fs-3-max) - 1) / var(--f-w) * 100vi), var( --fs-3-max) * 1rem);
+  --sp-xl-2xl:  clamp(var( --fs-3-min) * 1rem, ((var(--f-minus) * ((var( --fs-4-max) - var( --fs-3-min)) / var(--f-w)) + var( --fs-3-min)) * 1rem) + ((var( --fs-4-max) - 1) / var(--f-w) * 100vi), var( --fs-4-max) * 1rem);
+  --sp-2xl-3xl: clamp(var( --fs-4-min) * 1rem, ((var(--f-minus) * ((var( --fs-5-max) - var( --fs-4-min)) / var(--f-w)) + var( --fs-4-min)) * 1rem) + ((var( --fs-5-max) - 1) / var(--f-w) * 100vi), var( --fs-5-max) * 1rem);
+}}

@@ -1,0 +1,56 @@
+---
+/*
+  An inline SVG loading spinner, animated via CSS.
+
+  This was adapted from here:
+    https://github.com/n3r4zzurr0/svg-spinners/blob/main/svg-css/ring-resize.svg
+ */
+import { type HTMLAttributes } from 'astro/types'
+
+type Props = HTMLAttributes<"svg"> | HTMLAttributes<"div">;
+
+const {
+  ...rest
+} = Astro.props;
+
+---
+<svg aria-hidden="true" stroke="currentcolor" viewBox="0 0 24 24" {...rest}>
+  <g>
+    <circle cx="12" cy="12" r="9.5" fill="none" stroke-width="3"/>
+  </g>
+</svg>
+
+<style>
+  g {
+    transform-origin: center;
+    animation: outer 2s linear infinite;
+
+    circle {
+      stroke-linecap: round;
+      animation: inner 1.5s ease-in-out infinite;
+    }
+  }
+
+  @keyframes outer {
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes inner {
+    0% {
+      stroke-dasharray: 0 150;
+      stroke-dashoffset: 0;
+    }
+    
+    47.5% {
+      stroke-dasharray: 42 150;
+      stroke-dashoffset: -16;
+    }
+    
+    95%,100% {
+      stroke-dasharray: 42 150;
+      stroke-dashoffset: -59;
+    }
+  }
+</style>

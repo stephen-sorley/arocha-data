@@ -1,0 +1,189 @@
+@layer reset, base;
+
+@import "./reset.css";
+@import "./sizes.css";
+
+@layer base {
+
+html {
+  /* Font families. */
+  /*     A Rocha USA brand font, and native fallbacks */
+  --font-main: "Ezzo", "Fallback", sans-serif;
+  /*     Geometric Humanist from modernfontstacks.com */
+  --font-form: Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif;
+
+  /* Settings for fluid font sizes / spacing */
+  --f-min-w-px: 320; /* min screen width */
+  --f-max-w-px: 1200; /* max screen width */
+  --f-min-font-px: 14;
+  --f-max-font-px: 21;
+  @media (aspect-ratio >= 3/2) {
+    --f-max-font-px: 18;
+  }
+
+  --content-width: calc((var(--f-max-w-px) / 16) * 1rem);
+
+  /* Border settings. */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --shadow-lg: 0 0.25rem 1.5rem rgba(0,0,0,.2);
+
+  /* Site colors. */
+  --color-fg: #000;
+  --color-bg: #fff;
+  --color-main: #0097ce;
+  --color-alt1: #e1523d;
+  --color-alt2: #4b9263;
+  --color-alt3: #003c52;
+  --color-border: #b8b8b8;
+  --color-input: #707070;
+
+  --color-focus: #f2853a;
+  --color-error: #9f0712;
+  --color-success: #016630;
+  --color-warning: #eab308;
+
+  /* Animation settings. */
+  --duration: 120ms;
+  --duration-long: 180ms;
+  @media (prefers-reduced-motion: reduce) {
+    --duration: 0ms;
+    --duration-long: 0ms;
+  }
+
+
+  color: var(--color-fg);
+  background-color: var(--color-bg);
+  
+  font-family: var(--font-main);
+  font-size: var(--text-base);
+  font-synthesis: none;
+
+  scroll-behavior: smooth;
+  /*scrollbar-gutter: stable;*/
+
+  button:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+  h1,h2,h3,h4,h5,h6 {
+    text-wrap: balance;
+  }
+
+  form {
+    font-family: var(--font-form);
+  }
+
+  /* focus ring */
+  :focus-visible {
+    outline: 0.1875rem solid var(--color-focus);
+    outline-offset: 0.25rem;
+  }
+  fieldset:has([type="radio"]:focus-visible) {
+    outline: 1px solid color-mix(in oklch, var(--color-focus), var(--color-bg) 30%);
+    outline-offset: 0.5rem;
+  }
+
+  /* links inside text */
+  a.text, .text a, p a {
+    text-decoration-line: underline;
+    text-decoration-color: currentColor;
+
+    transition-property: color, text-decoration-thickness,text-underline-offset;
+    transition-duration: var(--duration);
+    transition-timing-function: ease;
+
+    text-decoration-thickness: from-font;
+    text-underline-offset: 0.25em;
+    &:is(:focus-visible,:hover) {
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.125em;
+    }
+  }
+
+  /* paragraph margins and spacing. */
+  p + p {
+    margin-block-start: 1.5em;
+  }
+
+  /* links that open in new tab */
+  a[target="_blank"]:not(:is(.default,.primary,.secondary)) {
+    position: relative;
+    padding-inline-end: 1.5ch;
+    &::after {
+      content: "↗";
+      position: absolute;
+      top: 50%;
+      transform: translateY(-55%); /* Shifts exactly half its own height upward */
+      right: 0;
+    }
+  }
+
+  /* buttons / button-styled links */
+  :is(button,a):is(.default,.primary,.secondary) {
+    --color-btn-fg: var(--color-bg);
+    
+    &.default {
+      --color-btn-bg: var(--color-main);
+    }
+    &.primary {
+      --color-btn-bg: var(--color-alt1);
+    }
+    &.secondary {
+      --color-btn-bg: var(--color-alt2);
+    }
+
+    display: flex;
+    gap: var(--sp-sm);
+    align-content: center;
+    justify-content: center;
+    padding-inline: 1lh;
+    padding-block: 0.25lh;
+
+    .ready {   display: inline; }
+    .working { display: none; }
+    &[aria-disabled="true"] {
+      .ready {   display: none; }
+      .working { display: inline; }
+    }
+
+    border: 0.125em solid var(--color-btn-bg);
+
+    transition: color var(--duration) ease, background-color var(--duration) ease;
+
+    color: var(--color-btn-fg);
+    background-color: var(--color-btn-bg);
+    &:is(:hover,:focus-visible,[aria-disabled="true"]) {
+      color: var(--color-btn-bg);
+      background-color: var(--color-btn-fg);
+    }
+  }
+}
+
+/* A Rocha USA Brand Font */
+@font-face {
+  font-family: "Ezzo";
+  font-style: normal;
+  src: local('Ezzo Book'), 
+       local('Ezzo-Book'), 
+       local('Ezzo'),
+       local('ezzo'),
+       url('/EzzoBook.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+/* Fallback font chosen for minimal layout shift vs brand font
+ * (used the Fallback Font Generator here: https://screenspan.net/fallback)
+ */
+@font-face {
+  font-family: "Fallback";
+  src: local(Verdana);
+  size-adjust: 93%;
+  ascent-override: 141%;
+}
+
+} /* END layer base */

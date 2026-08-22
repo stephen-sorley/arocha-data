@@ -1,0 +1,22 @@
+# HTTP headers added by Cloudflare server when serving our pages and assets.
+# See: https://developers.cloudflare.com/workers/static-assets/headers/
+#
+# Most of these security headers were obtained by following the recommendations
+# on https://securityheaders.com.
+#
+# WARNING: DO NOT set Content Security Policy headers in here, they're now handled
+#          inside Astro and added in a meta tag in HEAD. See security.csp in
+#          astro.config.ts if you need to edit any CSP directives.
+#
+# See: https://docs.astro.build/en/reference/configuration-reference/#securitycsp
+#
+
+# Apply these headers to all paths served.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), display-capture=()
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-site

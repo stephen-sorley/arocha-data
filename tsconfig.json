@@ -1,10 +1,25 @@
 {
+  "extends": "astro/tsconfigs/strict",
+  "include": [
+    ".astro/types.d.ts",
+    "./worker-configuration.d.ts",
+    "**/*",
+  ],
+  "exclude": [
+    "dist",
+    ".git",
+    ".vscode",
+    ".wrangler",
+    ".astro"
+  ],
   "compilerOptions": {
     "target": "es2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["esnext", "esnext.temporal"] ,
+    "lib": ["esnext", "esnext.temporal"],
 
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "isolatedModules": true,

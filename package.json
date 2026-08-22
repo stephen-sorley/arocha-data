@@ -1,16 +1,28 @@
 {
-  "name": "arocha subs",
+  "name": "arocha-data",
   "description": "",
   "version": "0.1.0",
   "type": "module",
+  "browserslist": [
+    "baseline widely available"
+  ],
   "scripts": {
-    "run": "main.ts"
+    "dev": "astro dev",
+    "preview": "astro preview",
+    "build": "astro build",
+    "deploy": "wrangler deploy",
+    "postinstall": "pnpm up --depth=Infinity --no-save caniuse-lite baseline-browser-mapping"
   },
   "dependencies": {
-    "@paypal/paypal-server-sdk": "^2.4.0",
+    "@astrojs/cloudflare": "^14.2.3",
+    "@paypal/paypal-server-sdk": "^2.5.0",
     "@types/node": "^26.2.0",
+    "astro": "^7.2.4",
+    "browserslist-to-esbuild": "^2.1.1",
     "dotenv": "^17.4.2",
     "jsforce": "^3.10.22",
-    "stripe": "^22.5.0"
+    "lightningcss": "^1.33.0",
+    "stripe": "^22.5.0",
+    "wrangler": "^4.125.0"
   }
 }

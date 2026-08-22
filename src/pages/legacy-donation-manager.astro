@@ -1,0 +1,218 @@
+---
+import Layout from "../layout.astro";
+import Card from "../card.astro";
+import Spinner from "../spinner.astro";
+
+import { actions, getActionPath } from "astro:actions";
+import { actionName } from "../actions/login.ts";
+
+export const prerender = true;
+
+const emailId = "email";
+const emailErrId = "email-err";
+
+const actionUrl = getActionPath(actions[actionName]);
+
+---
+<Layout title="Legacy Donation Manager">
+  <Card as="form" id="login" novalidate
+    title="Donor Login"
+    align="center"
+    data-action={actionUrl}
+    data-state="initial"
+    data-err={emailErrId}
+  >
+    <div class="status" tabindex="-1">
+      <div class="success">
+        <h3>
+          <svg width="1lh" height="1lh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+            <path d="M9 12l2 2l4 -4" />
+          </svg>
+          Success!
+        </h3>
+        <p>
+          A login link was sent to your email, please use that to manage your
+          legacy recurring donations.
+        </p>
+      </div>
+      <div class="error">
+        <h3>
+          <svg aria-hidden="true" width="1lh" height="1lh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 9v4" />
+            <path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0" />
+            <path d="M12 16h.01" />
+          </svg>
+          Oops, we've got an error.
+        </h3>
+        <p id={emailErrId}></p>
+      </div>
+    </div>
+
+    <label for={emailId}>
+      Email
+      <span aria-hidden="true" class="mod">&nbsp; (required)</span>
+      <input id={emailId} name="email" required aria-describedby={emailErrId}
+              type="email" autocomplete="email" maxlength={80}
+      />
+      <div class="desc">Enter the email you gave when you set up the recurring donation.</div>
+    </label>
+
+    {/* Honeypot */}
+    <label for="approver" class="reqd">
+      Approver Email
+      <span aria-hidden="true" class="mod">&nbsp; (required)</span>
+      <input id="approver" type="email" autocomplete="email" maxlength={80} name="approver-email" value="jsmith@example.com" required />
+    </label>
+
+    <button type="submit" aria-disabled="true" class="default">
+      <Spinner class="working"/>
+      <span class="working">Processing</span>
+      <span class="ready">Submit</span>
+    </button>
+    <div class="desc text">If you have trouble logging in, please <a href="https://arocha.us/contact-us">contact us</a>.</div>
+  </Card>
+</Layout>
+
+<style>
+#login {
+  align-self: center;
+  justify-self: center;
+
+  max-width: 40ch;
+  font-size: var(--text-lg);
+
+  h3 {
+    width: 100%;
+    font-weight: 500;
+    font-size: var(--text-lg);
+  }
+  p {
+    font-size: var(--text-base);
+  }
+
+  div.status {
+    margin-block-end: var(--sp-xs);
+    width: 100%;
+    padding: var(--sp-xs);
+    display: none;
+    opacity: 0;
+    transition:
+      opacity var(--duration) ease,
+      display var(--duration) allowDiscrete
+  }
+  &:not([data-state="initial"]) {
+    div.status {
+      display: block;
+      opacity: 1;
+      border-radius: var(--radius-md);
+      border-style: solid;
+      border-inline-start-width: 3px;
+    }
+    &[data-state="error"] {
+      div.success { display: none; }
+      div.error {   display: block; }
+      border-color: var(--color-error);
+    }
+    &[data-state="success"] {
+      div.success { display: block; }
+      div.error {   display: none; }
+      border-color: 3px solid var(--color-success);
+    }
+  }
+  
+  .desc {
+    font-size: 0.75em;
+    font-weight: 300;
+    width: 100%;
+    padding-block: var(--sp-2xs);
+    padding-inline: 1.5ch;
+  }
+
+  .mod {
+    font-weight: 300;
+  }
+
+  label {
+    width: 100%;
+    padding-inline: var(--sp-xs);
+    padding-block: var(--sp-2xs);
+    border-radius: var(--radius-sm);
+
+    /* For honeypot. */
+    &.reqd {
+      display: var(--toggle);
+    }
+  }
+
+  input {
+    border: 1px solid var(--color-border);
+    color: var(--color-input);
+    width: 100%;
+    padding: 0.25lh 0.25lh 0.25lh 1.5lh;
+    line-height: 1lh;
+    cursor: initial;
+
+    transition: border-color var(--duration) ease;
+    &:is(:hover,:focus-visible) {
+      border-color: var(--color-main);
+    }
+
+    &#email {
+      background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22%23a0a0a0%22%3E%3Cpath%20stroke%3D%22none%22%20d%3D%22M0%200h24v24H0z%22%20fill%3D%22none%22%20%2F%3E%3Cpath%20d%3D%22M22%207.535v9.465a3%203%200%200%201%20-2.824%202.995l-.176%20.005h-14a3%203%200%200%201%20-2.995%20-2.824l-.005%20-.176v-9.465l9.445%206.297l.116%20.066a1%201%200%200%200%20.878%200l.116%20-.066l9.445%20-6.297z%22%20%2F%3E%3Cpath%20d%3D%22M19%204c1.08%200%202.027%20.57%202.555%201.427l-9.555%206.37l-9.555%20-6.37a2.999%202.999%200%200%201%202.354%20-1.42l.201%20-.007h14z%22%20%2F%3E%3C%2Fsvg%3E");
+      background-repeat: no-repeat;
+      background-position: 0.25lh center;
+      background-size: 1lh 1lh;
+    }
+  }
+  
+  button {
+    margin-block-start: var(--sp-sm);
+    width: 100%;
+  }
+
+  button + div {
+    padding-block-start: var(--sp-sm);
+    text-align: center;
+  }
+  
+  /* For honeypot. */
+  --toggle: none;
+}
+</style>
+
+<script>
+{
+  const form = document.querySelector<HTMLFormElement>("form#login");
+  const submitButton = form?.querySelector<HTMLButtonElement>('[type="submit"]');
+
+  submitButton?.removeAttribute("aria-disabled");
+
+  // Part of honeypot handling.
+  form?.querySelector<HTMLInputElement>(".reqd > input")?.removeAttribute("value");
+  
+  form?.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+
+    if (!form.dataset.action || !submitButton || submitButton.ariaDisabled === "true") {
+      return; //prevent clicks during processing.
+    }
+
+    submitButton.ariaDisabled = "true";
+    submitButton.focus(); //refocus on button to announce changed text in screen reader
+
+    const formData = new FormData(form);
+
+    // Send form data to handler, wait for response.
+    const response = await fetch(form.dataset.action, {
+      method: "POST",
+      body: formData
+    });
+    // don't call response.json() directly, will throw error if body is empty
+    const text = await response.text();
+    const result = text? JSON.parse(text) : {};
+
+
+  });
+}
+</script>
