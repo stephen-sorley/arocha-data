@@ -96,3 +96,12 @@ export const statusFromString = (str?: string | null): RecurringStatus => {
   }
   return "unknown";
 }
+
+export type Processor = "cnp" | "paypal" | "stripe";
+export const processorFromId = (id: string): Processor => {
+  if (id.startsWith("https"))
+    return "cnp";
+  if (id.startsWith("I-"))
+    return "paypal";
+  return "stripe";
+}

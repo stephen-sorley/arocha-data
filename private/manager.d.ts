@@ -8,5 +8,7 @@ export type ManagerSubInfo = {
       since: string,
       contactId: string,
       processorId: string,
+      processor: "cnp" | "paypal" | "stripe",
+      status?: "active" | "inactive" | "unknown",
   }[],
 };

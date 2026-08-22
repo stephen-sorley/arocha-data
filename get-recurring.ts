@@ -20,7 +20,10 @@
 
 import { createWriteStream, writeFile } from "node:fs";
 
-import type { RecurringSub } from "./lib/utils.ts";
+import {
+  processorFromId,
+  type RecurringSub
+} from "./lib/utils.ts";
 
 import type {
   ManagerEmailMap,
@@ -185,6 +188,7 @@ for (const sub of subs) {
     since: since,
     contactId: contact.id,
     processorId: sub.id,
+    processor: processorFromId(sub.id),
   });
 }
 
