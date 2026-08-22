@@ -32,14 +32,21 @@ const getDesignation = (sub: Stripe.Subscription) => {
     return override;
   }
 
-  const prodName = (sub.items.data[0].price.product as Stripe.Product)?.name;
-  const desTo = sub.metadata?.["Designate to"] || sub.metadata?.["Designated to"];
-  const intlProj = sub.metadata?.["International Projects"];
-  const usProj = sub.metadata?.["US Projects"];
-  const other = sub.metadata?.["Other Designation"];
-  const all = [prodName, desTo, intlProj, usProj, other];
+  const maybeProduct = (sub as any).plan?.product as string | null | undefined | Stripe.Product;
+  const product = (maybeProduct && typeof maybeProduct === "object")? maybeProduct : undefined;
 
-  const checkAll = (name: string) => all.some(des => {
+  const meta = sub.metadata;
+
+  const toCheck = [
+    product?.name,
+    meta?.["Designate to"],
+    meta?.["Designated to"],
+    meta?.["International Projects"],
+    meta?.["US Projects"],
+    meta?.["Other Designation"],
+  ];
+
+  const checkAll = (name: string) => toCheck.some(des => {
     return des && des.toLocaleLowerCase().includes(name.toLocaleLowerCase());
   });
 
@@ -113,6 +120,13 @@ export const stripeConnect = () => {
 
 export const stripeGetSubs = async (stripe: StripeConnection, ids: string[], params?: Stripe.SubscriptionRetrieveParams) => {
   const CHUNK = 12;
+  
+  params ??= {};
+  params.expand ??= [
+    "customer",
+    "plan.product"
+  ];
+  
   const subs: Stripe.Subscription[] = [];
 
   for (let i=0; i<ids.length; i+=CHUNK) {
@@ -128,9 +142,25 @@ export const stripeGetSubs = async (stripe: StripeConnection, ids: string[], par
   return subs;
 };
 
+export const stripeGetAllCondensedSubs = async (stripe: StripeConnection, params?: Stripe.SubscriptionListParams) => {
+  params ??= {};
+  params.status ??= 'active';
+  params.limit ??= 100;
+  params.expand ??= [
+    "data.customer",
+    "data.plan.product",
+  ];
+
+  const subs: RecurringSub[] = [];
+  for await (const sub of stripe.subscriptions.list(params)) {
+    subs.push(stripeCondenseSub(sub));
+  }
+  return subs;
+}
+
 export const stripeCondenseSub = (sub: Stripe.Subscription) : RecurringSub => {
   const customer = sub.customer as Stripe.Customer;
-  const plan = sub.items.data[0].plan;
+  const plan = (sub as any).plan as Stripe.Plan;
 
   let frequency: RecurringSub["frequency"] | undefined;
   if (plan.interval === "month") {
@@ -155,7 +185,7 @@ export const stripeCondenseSub = (sub: Stripe.Subscription) : RecurringSub => {
 
   return {
     id: sub.id,
-    since: Temporal.Instant.fromEpochMilliseconds(sub.created*1000).toString(),
+    since: new Date(sub.created*1000).toISOString(),
     lead: customer.description?.toLocaleLowerCase().includes("givewp")? "GiveWP" : "LYP",
     email: emailNorm(customer.email),
     designation: getDesignation(sub),

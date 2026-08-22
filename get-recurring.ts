@@ -1,4 +1,4 @@
-#!/usr/bin/env -S node --harmony-temporal
+#!/usr/bin/env node
 
 /**
  * get-recurring.ts
@@ -39,7 +39,7 @@ import {
 
 import {
   stripeConnect,
-  stripeCondenseSub,
+  stripeGetAllCondensedSubs,
 } from "./lib/stripe.ts";
 
 import {
@@ -57,9 +57,7 @@ const subs: RecurringSub[] = [];
 // Get all active recurring subscriptions from Stripe.
 const stripe = stripeConnect();
 let start = performance.now();
-for await (const sub of stripe.subscriptions.list({ status: 'active', limit: 100, expand:["data.customer"] })) {
-  subs.push(stripeCondenseSub(sub));
-}
+subs.push(... await stripeGetAllCondensedSubs(stripe));
 console.error(`Retrieved ${subs.length} Stripe subscriptions in ${(performance.now() - start)/1000}s`);
 
 
