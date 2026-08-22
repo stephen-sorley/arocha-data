@@ -22,6 +22,11 @@ import { createWriteStream, writeFile } from "node:fs";
 
 import type { RecurringSub } from "./lib/utils.ts";
 
+import type {
+  ManagerEmailMap,
+  ManagerSubInfo
+} from "./private/manager.d.ts";
+
 import {
   emailEncrypt,
   emailNorm,
@@ -123,7 +128,7 @@ let w = createWriteStream("./private/recurring.csv");
 
 w.write(headers.join(",") + "\n");
 
-const accountToSub: Record<string,any> = {};
+const managerSubInfo: ManagerSubInfo = {};
 
 for (const sub of subs) {
   const encEmail = emailEncrypt(sub.email);
@@ -162,41 +167,38 @@ for (const sub of subs) {
   ];
   w.write(line.join(",") + "\n");
 
-  const acctSubs = accountToSub[contact.account]?.subs || [];
-  if (acctSubs.length === 0) {
-    accountToSub[contact.account] = {
-      name: (firstName + " " + lastName).trim(),
-      subs: acctSubs,
-    };
+  const managerSubs = managerSubInfo[contact.account] || [];
+  if (managerSubs.length === 0) {
+    managerSubInfo[contact.account] = managerSubs;
   }
-  acctSubs.push({
+  managerSubs.push({
     designation: sub.designation,
     amount: amount,
     frequency: sub.frequency,
     since: since,
     contactId: contact.id,
-    lead: sub.lead,
+    processorId: sub.id,
   });
 }
 
 w.end();
 
-writeFile("./private/recurring.json", JSON.stringify(accountToSub, null, 2), ()=>{});
+writeFile("./private/recurring.json", JSON.stringify(managerSubInfo, null, 2), ()=>{});
 
 
-const emailToAccount: Record<string,string> = {};
+const managerEmailMap: ManagerEmailMap = {};
 for (const [account, emails] of accountToEmails.entries()) {
   for (const email of emails) {
     const encEmail = emailEncrypt(email);
-    if (emailToAccount[email]) {
+    if (managerEmailMap[email]) {
       throw new Error(`duplicate email detected: ${email}`);
     }
     if (!encEmail) {
       throw new Error(`encryption failed: ${email}`);
     }
-    emailToAccount[encEmail] = account;
+    managerEmailMap[encEmail] = account;
   }
 }
-writeFile("./private/email-map.json", JSON.stringify(emailToAccount, null, 2), ()=>{});
+writeFile("./private/email-map.json", JSON.stringify(managerEmailMap, null, 2), ()=>{});
 
-console.error(`\nFinished: ${subs.length} subscriptions, ${Object.keys(emailToAccount).length} emails, ${accountToEmails.size} accounts`);
+console.error(`\nFinished: ${subs.length} subscriptions, ${Object.keys(managerEmailMap).length} emails, ${accountToEmails.size} accounts`);

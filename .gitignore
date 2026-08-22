@@ -1,7 +1,8 @@
 .git
 *.jsonc
-private/
+private/*
 !private/README.md
+!private/*.d.ts
 
 cnp.csv
 cnp.json
