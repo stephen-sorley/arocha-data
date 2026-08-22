@@ -1,5 +1,10 @@
 /** Where to get API keys (stick in a file in project root named .env):
  * 
+ * # This .env file is used for the arocha-data project:
+ * # https://github.com/stephen-sorley/arocha-data
+ * #
+ * # It's stored in the finance Bitwarden under "arocha-data-env".
+ * 
  * # Stripe: https://dashboard.stripe.com/acct_1EwwrmKnX7EKttkA/apikeys
  * STRIPE_KEY= Restricted Keys -> "Legacy Subscription Manager" -> Token
  * 
@@ -15,8 +20,11 @@
  * CM_ID= API Client ID
  * CM_KEY= API Key
  * 
- * # A Rocha Email Key: finance bitwarden => search for "email key"
- * EMAIL_KEY= 
+ * # A Rocha Email Encryption Key
+ * EMAIL_KEY= finance bitwarden => search for "email key" (or just randomly generate 16 chars)
+ * 
+ * # Zapier endpoint that emails magic links to donors.
+ * LOGIN_FORM_DEST=https://zapier.com/editor/377194014
  */
 
 import * as dotenv from "dotenv";
