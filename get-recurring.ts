@@ -34,18 +34,19 @@ import {
 
 import {
   paypalConnect,
-  paypalCondensedSubs,
+  paypalNormalizeSub,
+  paypalListSubs,
 } from "./lib/paypal.ts";
 
 import {
   stripeConnect,
-  stripeGetAllCondensedSubs,
+  stripeNormalizeSub,
+  stripeListSubs,
 } from "./lib/stripe.ts";
 
 import {
   sfConnect,
   sfEmailsToContacts,
-  type SfContactRecord
 } from "./lib/salesforce.ts";
 
 import cnp from "./private/cnp.json" with {type: "json"};
@@ -57,25 +58,33 @@ const subs: RecurringSub[] = [];
 // Get all active recurring subscriptions from Stripe.
 const stripe = stripeConnect();
 let start = performance.now();
-subs.push(... await stripeGetAllCondensedSubs(stripe));
+const stripeSubs = await stripeListSubs(stripe);
+for (const sub of stripeSubs) {
+  subs.push(stripeNormalizeSub(sub))
+}
 console.error(`Retrieved ${subs.length} Stripe subscriptions in ${(performance.now() - start)/1000}s`);
 
 
 // Get all active recurring subscriptions from PayPal.
 const paypal = paypalConnect();
 start = performance.now();
-const paypalSubs = await paypalCondensedSubs(paypal);
-subs.push(...paypalSubs);
+const paypalSubs = await paypalListSubs(paypal);
+for (const sub of paypalSubs) {
+  const nsub = paypalNormalizeSub(sub);
+  if (nsub) {
+    subs.push(nsub);
+  }
+}
 console.error(`Retrieved ${paypalSubs.length} PayPal subscriptions in ${(performance.now() - start)/1000}s`);
 
 
 // Get all recurring subscriptions from manually-collected Click and Pledge data.
 for (const sub of cnp) {
   let freq: RecurringSub["frequency"];
-  if (sub.Frequency === "Month" || sub.Frequency === "Quarter" || sub.Frequency === "Year") {
+  if (sub.Frequency === "month" || sub.Frequency === "quarter" || sub.Frequency === "year") {
     freq = sub.Frequency;
   } else {
-    freq = "Month";
+    freq = "month";
   }
   subs.push({
     id: sub["Donor Portal Link"],
@@ -140,7 +149,7 @@ for (const sub of subs) {
     throw new Error(`${sub.id}: missing SF contact or account for ${sub.firstName} ${sub.lastName} <${sub.email}>`);
   }
 
-  const npayments = sub.frequency === "Year"? 1 : (sub.frequency === "Quarter"? 4 : 12);
+  const npayments = sub.frequency === "year"? 1 : (sub.frequency === "quarter"? 4 : 12);
   
   const amount = sub.amount.toFixed(2);
   const yearlyValue = (sub.amount*npayments).toFixed(2);

@@ -64,5 +64,35 @@ export type RecurringSub = {
   firstName?: string,
   lastName?: string,
   amount: number,
-  frequency: "Month" | "Quarter" | "Year",
+  frequency: "month" | "quarter" | "year",
+}
+
+export type RecurringStatus = "active" | "inactive" | "unknown";
+
+const activeStrings: Record<string,boolean> = {
+  "active": true, // paypal, stripe
+  "past_due": true, // stripe
+};
+const inactiveStrings: Record<string,boolean> = {
+  "suspended": true, // paypal
+  "cancelled": true, // paypal
+  "expired": true, // paypal
+
+  "paused": true, // stripe
+  "canceled": true, // stripe
+  "unpaid": true, // stripe
+  "incomplete_expired": true, // stripe
+};
+
+export const statusFromString = (str?: string | null): RecurringStatus => {
+  const strlower = str?.toLocaleLowerCase()?.trim();
+  if (strlower) {
+    if (activeStrings[strlower]) {
+      return "active";
+    }
+    if (inactiveStrings[strlower]) {
+      return "inactive";
+    }
+  }
+  return "unknown";
 }

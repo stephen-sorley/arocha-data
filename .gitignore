@@ -1,5 +1,5 @@
 .git
-*.jsonc
+test*.jsonc
 private/*
 !private/README.md
 !private/*.d.ts

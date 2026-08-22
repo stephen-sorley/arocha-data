@@ -4,7 +4,7 @@ export type ManagerSubInfo = {
   [key: string]: {
       designation: string,
       amount: string,
-      frequency: "Month" | "Quarter" | "Year",
+      frequency: "month" | "quarter" | "year",
       since: string,
       contactId: string,
       processorId: string,

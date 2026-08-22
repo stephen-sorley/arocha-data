@@ -16,7 +16,8 @@ import Stripe from "stripe";
 import {
   init,
   fromEnv,
-  type RecurringSub
+  statusFromString,
+  type RecurringSub,
 } from "./utils.ts";
 
 import { emailNorm } from "./email.ts";
@@ -118,7 +119,11 @@ export const stripeConnect = () => {
   });
 }
 
-export const stripeGetSubs = async (stripe: StripeConnection, ids: string[], params?: Stripe.SubscriptionRetrieveParams) => {
+export const stripeGetStatus = async (stripe: StripeConnection, id: string) => {
+  return stripe.subscriptions.retrieve(id).then((sub) => statusFromString(sub.status));
+}
+
+export const stripeFindSubs = async (stripe: StripeConnection, ids: string[], params?: Stripe.SubscriptionRetrieveParams) => {
   const CHUNK = 12;
   
   params ??= {};
@@ -142,35 +147,19 @@ export const stripeGetSubs = async (stripe: StripeConnection, ids: string[], par
   return subs;
 };
 
-export const stripeGetAllCondensedSubs = async (stripe: StripeConnection, params?: Stripe.SubscriptionListParams) => {
-  params ??= {};
-  params.status ??= 'active';
-  params.limit ??= 100;
-  params.expand ??= [
-    "data.customer",
-    "data.plan.product",
-  ];
-
-  const subs: RecurringSub[] = [];
-  for await (const sub of stripe.subscriptions.list(params)) {
-    subs.push(stripeCondenseSub(sub));
-  }
-  return subs;
-}
-
-export const stripeCondenseSub = (sub: Stripe.Subscription) : RecurringSub => {
+export const stripeNormalizeSub = (sub: Stripe.Subscription) : RecurringSub => {
   const customer = sub.customer as Stripe.Customer;
   const plan = (sub as any).plan as Stripe.Plan;
 
   let frequency: RecurringSub["frequency"] | undefined;
   if (plan.interval === "month") {
     if (plan.interval_count === 1) {
-      frequency = "Month";
+      frequency = "month";
     } else if (plan.interval_count === 3) {
-      frequency = "Quarter";
+      frequency = "quarter";
     }
   } else if (plan.interval === "year" && plan.interval_count === 1) {
-    frequency = "Year";
+    frequency = "year";
   }
   if (!frequency) {
     throw new Error(`${sub.id}: unsupported recurring frequency: every ${plan.interval_count} ${plan.interval}`);
@@ -194,4 +183,20 @@ export const stripeCondenseSub = (sub: Stripe.Subscription) : RecurringSub => {
     amount: (plan.amount ?? NaN) / 100,
     frequency: frequency,
   }
+}
+
+export const stripeListSubs = async (stripe: StripeConnection, params?: Stripe.SubscriptionListParams) => {
+  params ??= {};
+  params.status ??= 'active';
+  params.limit ??= 100;
+  params.expand ??= [
+    "data.customer",
+    "data.plan.product",
+  ];
+
+  const subs: Stripe.Subscription[] = [];
+  for await (const sub of stripe.subscriptions.list(params)) {
+    subs.push(sub);
+  }
+  return subs;
 }
