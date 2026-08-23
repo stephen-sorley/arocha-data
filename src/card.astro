@@ -1,4 +1,5 @@
 ---
+import type { AstroComponentFactory } from "astro/runtime/server/index.js";
 import type { Polymorphic } from "astro/types";
 
 export type Props<Tag extends "section" | "form"> = Polymorphic<{ as: Tag }> & {
@@ -7,6 +8,8 @@ export type Props<Tag extends "section" | "form"> = Polymorphic<{ as: Tag }> & {
   level?: "h2" | "h3" | "h4" | "h5" | "h6",
 
   align?: "start" | "center" | "end",
+
+  icon?: AstroComponentFactory,
 }
 
 const {
@@ -14,6 +17,7 @@ const {
   title,
   level = "h2",
   align = "start",
+  icon: Icon,
   class: className,
   ...rest
 } = Astro.props;
@@ -21,7 +25,15 @@ const {
 const H = level;
 ---
 <Tag class:list={[className]} {...rest}>
-  <H class:list={["header", align]}>{title}</H>
+  <H class:list={["header", align]}>
+    { Icon && align !== "start" && (
+    <Icon />
+    )}
+    <span>{title}</span>
+    { Icon && align !== "end" && (
+    <Icon />
+    )}
+  </H>
   <div class="body">
     <slot />
   </div>
@@ -32,9 +44,9 @@ const H = level;
   :is(section, form) {
     border-radius: var(--radius-md);
     box-shadow:
-      0 2px 2px 0    rgb(0 0 0 / .14),
-      0 3px 1px -2px rgb(0 0 0 / .2),
-      0 1px 5px 0    rgb(0 0 0 / .12);
+      0 2px 2px 0    rgb(0 0 0 / 0.14),
+      0 3px 1px -2px rgb(0 0 0 / 0.2),
+      0 1px 5px 0    rgb(0 0 0 / 0.12);
     overflow: clip;
 
     display: grid;
@@ -43,11 +55,16 @@ const H = level;
   }
 
   .header {
-    &.center { text-align: center; }
-    &.start {  text-align: start; }
-    &.end {    text-align: end; }
+    &.center span { text-align: center; }
+    &.start span {  text-align: start; }
+    &.end span {    text-align: end; }
     padding-inline: var(--sp-sm);
-    line-height: 2;
+    padding-block: 0.5lh;
+
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--sp-xs);
 
     --fg: var(--color-fg);
     --bg: var(--color-bg);
@@ -59,6 +76,14 @@ const H = level;
 
     font-weight: 500;
     font-size: var(--text-xl);
+
+    /* Caller may have passed in an optional header icon. */
+    svg {
+      flex-shrink: 0;
+      width: 1lh;
+      height: 1lh;
+      color: var(--tint);
+    }
   }
 
   .body {
