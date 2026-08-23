@@ -1,20 +1,36 @@
 ---
 import Layout from "../layout.astro";
 import Card from "../card.astro";
-import Spinner from "../spinner.astro";
+import Modal from "../modal.astro";
+
+// These three icons are all from Tabler (https://tabler.io/icons).
+import IconActive   from "../circle-check.svg";
+import IconInactive from "../circle-x.svg";
+import IconUnknown  from "../help.svg";
 
 import {
-
+  stripeConnect,
+  stripeGetStatus,
 } from "../../lib/stripe.ts";
 
-import emailMap from "../../private/email-map.json" with {type: "json"};
-import subInfo from "../../private/recurring.json" with {type: "json"};
+import {
+  paypalConnect,
+  paypalGetStatus,
+} from "../../lib/paypal.ts";
+
+import type {
+  RecurringStatus
+} from "../../lib/utils.ts";
+
+// Import static private JSON data, force the proper types using "as".
+import emailMap_gen from "../../private/email-map.json" with {type: "json"};
+import subInfo_gen from "../../private/recurring.json" with {type: "json"};
 import type {
   ManagerEmailMap,
   ManagerSubInfo
 } from "../../private/manager.d.ts";
-const managerEmailMap = emailMap as ManagerEmailMap;
-const managerSubInfo = subInfo as ManagerSubInfo;
+const managerEmailMap = emailMap_gen as ManagerEmailMap;
+const managerSubInfo = subInfo_gen as ManagerSubInfo;
 
 export const prerender = false;
 
@@ -33,20 +49,11 @@ if (!account) {
   console.error(`account retrieve error: token ${token} not found`);
   return err;
 }
-const subs = managerSubInfo[account];
-if (!subs) {
+const subInfo = managerSubInfo[account];
+if (!subInfo) {
   console.error(`account retrieve error: account ${account} not found`);
   return err;
 }
-
-const adminParam = Astro.url.searchParams.get("admin")?.toLocaleLowerCase();
-const adminLinks = adminParam && !["false","no","0","null"].includes(adminParam);
-
-const accountHref = `https://arochausa.lightning.force.com/lightning/r/Account/${account}/related/npe03__RecurringDonations__r/view`;
-const contactLinks = 
-  subs.map(({contactId}) => (
-    `https://arochausa.lightning.force.com/lightning/r/Contact/${contactId}/view`
-  ));
 
 const toFancyDate = (dateStr: string) => {
   const [year, month, day] = dateStr.split("-");
@@ -59,36 +66,99 @@ const toFancyDate = (dateStr: string) => {
   });
 };
 
-const idToProc = (id: string) => {
-  if (id.startsWith("https"))
-    return "cnp";
-  if (id.startsWith("I-"))
-    return "paypal";
-  return "stripe";
+const start = performance.now();
+const stripe = subInfo.hasStripe? stripeConnect() : undefined;
+const paypal = subInfo.hasPaypal? paypalConnect() : undefined;
+
+// Poll stripe and paypal to get current subscription statuses, if applicable.
+const statuses = await Promise.all(subInfo.subs.map(sub => {
+  try {
+    if (sub.processor === "stripe") {
+      return stripeGetStatus(stripe as NonNullable<typeof stripe>, sub.processorId);
+    }
+    if (sub.processor === "paypal") {
+      return paypalGetStatus(paypal as NonNullable<typeof paypal>, sub.processorId);
+    }
+  } catch(e) {
+    console.error(
+      `Error getting status for ${sub.processorId}: ` +
+      (e instanceof Error? `${e.message}\n\n${e.stack}` : e)
+    );
+  }
+  return "unknown";
+}));
+const finish = performance.now();
+console.log(`Retrieved statuses in ${Math.round(finish-start)/1000}s`);
+
+const getIcon = (status: RecurringStatus) => {
+  if (status === "active") {
+    return IconActive;
+  } else if (status === "inactive") {
+    return IconInactive;
+  }
+  return IconUnknown;
 }
 
+const heading = subInfo.greeting?
+  `Hi ${subInfo.greeting}!`
+  :
+  `Recurring Donations`;
 
 ---
 
 <Layout title="Legacy Donation Manager">
   <div class="container">
-    {subs.map(sub => (
-    <Card class="sub" level="h2" align="start"
-      title={`$${sub.amount} / ${sub.frequency.toLocaleLowerCase()}`}
-      data-id={sub.processorId}
-      data-proc={idToProc(sub.processorId)}
-      data-status="unknown"
+    <h2>{heading}</h2>
+    {subInfo.subs.map((sub, i) => (
+    <Card class="sub" level="h3" align="start"
+      title={`$${sub.amount} / ${sub.frequency}`}
+      data-status={statuses[i]}
+      icon={getIcon(statuses[i])}
     >
-      <div class="inside">
+      <div class="details">
         <div>{`For: ${sub.designation}`}</div>
         <div>{`Since: ${toFancyDate(sub.since)}`}</div>
       </div>
-      <a class="cnp primary" href={sub.processorId} target="_blank">
+      { sub.processor === "cnp" && (
+      <a class="primary" href={sub.processorId} target="_blank">
         Manage at Click and Pledge
       </a>
-      <button class="default" type="button">
-        Cancel Recurring Gift
-      </button>
+      )}
+      { sub.processor !== "cnp" && statuses[i] !== "inactive" && (
+      <Fragment>
+        <button class="default" type="button" commandfor={`confirm-${i}`} command="show-modal">
+          Cancel Recurring Gift
+        </button>
+
+        <Modal id={`confirm-${i}`}>
+          <form class="confirm">
+            <h2>Are you sure?</h2>
+
+            <input type="hidden" name="index" value={i} />
+
+            <input type="hidden" name="procid" value={sub.processorId} />
+
+            <div>
+              <div>{`$${sub.amount} / ${sub.frequency}`}</div>
+              <div>{`For: ${sub.designation}`}</div>
+              <div>{`Since: ${toFancyDate(sub.since)}`}</div>
+            </div>
+
+            <button class="default" type="button" commandfor={`confirm-${i}`} command="close">
+              Keep Giving
+            </button>
+            <button class="primary outline" type="submit">
+              Stop Recurring Gift
+            </button>
+          </form>
+        </Modal>
+      </Fragment>
+      )}
+      { statuses[i] === "inactive" && (
+      <div class="cancel">
+        Already Canceled
+      </div>
+      )}
     </Card>
     ))}
   </div>
@@ -96,24 +166,58 @@ const idToProc = (id: string) => {
 
 <style>
 
+form.confirm {
+  font-size: var(--text-lg);
+  padding: var(--sp-md);
+  padding-top: var(--sp-sm);
+  min-width: 30ch;
+  min-height: 6lh;
+  
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, fit-content);
+  gap: var(--sp-sm);
+
+  h2 {
+    font-size: var(--text-xl);
+    weight: 400;
+    margin-inline: calc(-1 * var(--sp-sm));
+    margin-block-end: calc(-1 * var(--sp-xs));
+  }
+
+  & > div {
+    font-weight: 300;
+    margin-block-end: var(--sp-sm);
+  }
+  
+  button {
+    width: 100%;
+    white-space: nowrap;
+  }
+}
+
+.container > h2 {
+  text-align: center;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  flex-basis: 100%;
+}
+
 .container {
   align-self: start;
   justify-self: center;
   width: 100%;
   
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(30ch, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  flex-wrap: balance; /* only supported in Chrome so far, will fall back to wrap if unsupported */
   gap: var(--sp-xl);
   justify-content: center;
 }
-.admin, .sub {
-  font-family: var(--font-main);
-}
-.admin > :global(.header) {
-  --fg: var(--color-bg);
-  --bg: var(--color-alt3);
-}
 .sub {
+  font-family: var(--font-main);
+  flex: 0 1 30ch;
+
   &[data-status="unknown"] {
     &> :global(.header) {
       --tint: var(--color-warning);
@@ -140,7 +244,7 @@ const idToProc = (id: string) => {
     grid-template-rows: 1fr min-content;
     gap: var(--sp-xs);
   }
-  div.inside {
+  div.details {
     display: flex;
     flex-direction: column;
     align-items: start;
@@ -151,11 +255,15 @@ const idToProc = (id: string) => {
       flex: 0 1 auto;
     }
   }
-  a.cnp { display: none; }
-  button { display: flex; }
-  &[data-proc="cnp"] {
-    a.cnp { display: block; }
-    button { display: none; }
+  div.cancel {
+    display: flex;
+    align-content: center;
+    justify-content: center;
+
+    gap: var(--sp-sm);
+    padding-inline: 1lh;
+    padding-block: 0.25lh;
+    border: 0.125em solid transparent;
   }
 }
 </style>

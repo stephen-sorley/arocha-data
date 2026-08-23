@@ -23,12 +23,6 @@ html {
 
   --content-width: calc((var(--f-max-w-px) / 16) * 1rem);
 
-  /* Border settings. */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --shadow-lg: 0 0.25rem 1.5rem rgba(0,0,0,.2);
-
   /* Site colors. */
   --color-fg: #000;
   --color-bg: #fff;
@@ -43,6 +37,11 @@ html {
   --color-error: #9f0712;
   --color-success: #016630;
   --color-warning: #eab308;
+
+  /* Border settings. */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
 
   /* Animation settings. */
   --duration: 120ms;
@@ -138,11 +137,13 @@ html {
     }
 
     display: flex;
-    gap: var(--sp-sm);
     align-content: center;
     justify-content: center;
+
+    gap: var(--sp-sm);
     padding-inline: 1lh;
     padding-block: 0.25lh;
+    border: 0.125em solid var(--color-btn-bg);
 
     .ready {   display: inline; }
     .working { display: none; }
@@ -151,15 +152,25 @@ html {
       .working { display: inline; }
     }
 
-    border: 0.125em solid var(--color-btn-bg);
-
-    transition: color var(--duration) ease, background-color var(--duration) ease;
+    transition:
+      color var(--duration) ease,
+      border-color var(--duration) ease,
+      background-color var(--duration) ease;
 
     color: var(--color-btn-fg);
     background-color: var(--color-btn-bg);
+    &.outline {
+      color: var(--color-btn-bg);
+      background-color: color-mix(in oklch, var(--color-btn-fg), var(--color-btn-bg) 5%);
+      border-color: color-mix(in oklch, var(--color-btn-fg), var(--color-btn-bg) 5%);
+    }
     &:is(:hover,:focus-visible,[aria-disabled="true"]) {
       color: var(--color-btn-bg);
       background-color: var(--color-btn-fg);
+      &.outline {
+        border-color: var(--color-btn-bg);
+        background-color: color-mix(in oklch, var(--color-btn-fg), var(--color-btn-bg) 7%);
+      }
     }
   }
 }
