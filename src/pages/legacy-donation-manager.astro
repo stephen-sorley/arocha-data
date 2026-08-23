@@ -32,8 +32,7 @@ const actionUrl = getActionPath(actions[actionName]);
           Success!
         </h3>
         <p>
-          A login link was sent to your email, please use that to manage your
-          legacy recurring donations.
+          A login link was sent to your email. You can close this page now.
         </p>
       </div>
       <div class="error">
@@ -88,6 +87,7 @@ const actionUrl = getActionPath(actions[actionName]);
     font-size: var(--text-lg);
   }
   p {
+    margin-top: var(--sp-sm);
     font-size: var(--text-base);
   }
 
@@ -97,6 +97,13 @@ const actionUrl = getActionPath(actions[actionName]);
     padding: var(--sp-xs);
     display: none;
     opacity: 0;
+    svg {
+      display: inline;
+      width: 1lh;
+      height: 1lh;
+      margin-inline-end: 0.2lh;
+      margin-top: -0.1lh;
+    };
     transition:
       opacity var(--duration) ease,
       display var(--duration) allowDiscrete
@@ -105,21 +112,24 @@ const actionUrl = getActionPath(actions[actionName]);
     div.status {
       display: block;
       opacity: 1;
-      border-radius: var(--radius-md);
-      border-style: solid;
-      border-inline-start-width: 3px;
+      border: 4px solid transparent;
+      border-block-width: 2px;
     }
     &[data-state="error"] {
       div.success { display: none; }
       div.error {   display: block; }
-      border-color: var(--color-error);
-      svg { color: var(--color-error); }
+      div.status {
+        border-color: var(--color-error);
+        svg { color: var(--color-error); }
+      }
     }
     &[data-state="success"] {
       div.success { display: block; }
       div.error {   display: none; }
-      border-color: 3px solid var(--color-success);
-      svg { color: var(--color-success); }
+      div.status {
+        border-color: var(--color-success);
+        svg { color: var(--color-success); }
+      }
     }
   }
   
@@ -187,6 +197,8 @@ const actionUrl = getActionPath(actions[actionName]);
 {
   const form = document.querySelector<HTMLFormElement>("form#login");
   const submitButton = form?.querySelector<HTMLButtonElement>('[type="submit"]');
+  const emailInput = document.getElementById("email");
+  const emailErr = document.getElementById("email-err");
 
   submitButton?.removeAttribute("aria-disabled");
 
@@ -196,7 +208,7 @@ const actionUrl = getActionPath(actions[actionName]);
   form?.addEventListener("submit", async (ev) => {
     ev.preventDefault();
 
-    if (!form.dataset.action || !submitButton || submitButton.ariaDisabled === "true") {
+    if (!form.dataset.action || !submitButton || !emailInput || !emailErr || submitButton.ariaDisabled === "true") {
       return; //prevent clicks during processing.
     }
 
@@ -214,7 +226,22 @@ const actionUrl = getActionPath(actions[actionName]);
     const text = await response.text();
     const result = text? JSON.parse(text) : {};
 
-
+    if (response.ok) {
+      form.reset();
+      emailInput.ariaInvalid = null;
+      emailErr.replaceChildren();
+      form.dataset.state = "success";
+    } else {
+      emailErr.replaceChildren(
+           result.fields?.["email"]?.join(", ")
+        || result.message
+        || "Network error, try again later"
+      );
+      emailInput.ariaInvalid = "true";
+      form.dataset.state = "error";
+    }
+    emailInput.focus();
+    submitButton.ariaDisabled = "false";
   });
 }
 </script>

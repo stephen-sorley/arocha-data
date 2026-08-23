@@ -44,7 +44,7 @@ export const login = {
       const mappedLink = managerEmailMap[hemail];
       if (!mappedLink) {
         console.error(`login form: ${input.email} (${hemail}) does not match any known donor emails.`);
-        throw new ActionError({code:"FORBIDDEN", message:`Try another email, ${input.email} didn't match our records.`});
+        throw new ActionError({code:"FORBIDDEN", message:`Try a different email - we can't find that one in our records.`});
       }
       input.link = `https://donors.arocha.us/legacy/donor-8xje-${mappedLink}`;
 
