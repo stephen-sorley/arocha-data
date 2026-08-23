@@ -6,7 +6,7 @@ import cloudflare from "@astrojs/cloudflare";
 
 export default defineConfig({
   site: "https://donors.arocha.us",
-  output: "server",
+  output: "static",
   adapter: cloudflare({
     imageService: "compile",
   }),
@@ -44,7 +44,7 @@ export default defineConfig({
         "upgrade-insecure-requests",
         // default everything else to off, except for img-src and font-src
         "default-src 'none'",
-        "img-src 'self'",
+        "img-src 'self' data:",
         "font-src 'self'",
       ],
     },

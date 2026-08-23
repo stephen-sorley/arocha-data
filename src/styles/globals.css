@@ -5,6 +5,11 @@
 
 @layer base {
 
+
+@view-transition {
+  navigation: auto;
+}
+
 html {
   /* Font families. */
   /*     A Rocha USA brand font, and native fallbacks */
@@ -51,12 +56,6 @@ html {
     --duration-long: 0ms;
   }
 
-  /* Enables cross-document navigation */
-  @view-transition {
-    navigation: auto;
-  }
-
-  /* Changes the animation duration */
   & ::view-transition-group(root) {
     animation-duration: var(--duration);
   }

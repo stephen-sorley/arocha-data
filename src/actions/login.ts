@@ -41,12 +41,12 @@ export const login = {
         throw new ActionError({code:"INTERNAL_SERVER_ERROR", message:"Problems on our end, please try again later."});
       }
 
-      const mappedLink = managerEmailMap[hemail];
-      if (!mappedLink) {
+      const account = managerEmailMap[hemail];
+      if (!account) {
         console.error(`login form: ${input.email} (${hemail}) does not match any known donor emails.`);
         throw new ActionError({code:"FORBIDDEN", message:`Try a different email - we can't find that one in our records.`});
       }
-      input.link = `https://donors.arocha.us/legacy/donor-8xje-${mappedLink}`;
+      input.link = `https://donors.arocha.us/legacy/donor-8xje-${hemail}`;
 
       await sendToWebhook("LOGIN_FORM_DEST", "login", input);
     }
