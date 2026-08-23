@@ -1,7 +1,7 @@
 import { ActionError, defineAction } from 'astro:actions';
 import { z } from "astro/zod";
 
-import { emailEncrypt } from "../../lib/email.ts";
+import { emailHash } from "../../lib/email.ts";
 
 import emailMap from "../../private/email-map.json" with {type: "json"};
 import type { ManagerEmailMap } from "../../private/manager.d.ts";
@@ -35,16 +35,16 @@ export const login = {
 
       // Encrypt the normalized email address, check to see if it's in our map of
       // allowed addresses.
-      const encEmail = emailEncrypt(input.email) as string;
-      if (!encEmail) {
-        console.error(`login form: failed to encrypt email, some sort of server issue?`);
-        throw new ActionError({code:"FORBIDDEN", message:`Try another email, ${input.email} didn't match our records.`});
+      const hemail = emailHash(input.email);
+      if (!hemail) {
+        console.error(`login form: failed to hash email, some sort of server issue?`);
+        throw new ActionError({code:"INTERNAL_SERVER_ERROR", message:"Problems on our end, please try again later."});
       }
 
-      const mappedLink = managerEmailMap[encEmail];
+      const mappedLink = managerEmailMap[hemail];
       if (!mappedLink) {
-        console.error(`login form: ${input.email} does not match any known donor emails.`);
-        throw new ActionError({code:"INTERNAL_SERVER_ERROR", message:"Problems on our end, please try again later."});
+        console.error(`login form: ${input.email} (${hemail}) does not match any known donor emails.`);
+        throw new ActionError({code:"FORBIDDEN", message:`Try another email, ${input.email} didn't match our records.`});
       }
       input.link = `https://donors.arocha.us/legacy/donor-8xje-${mappedLink}`;
 

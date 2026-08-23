@@ -31,7 +31,7 @@ import type {
 } from "./private/manager.d.ts";
 
 import {
-  emailEncrypt,
+  emailHash,
   emailNorm,
 } from "./lib/email.ts";
 
@@ -142,9 +142,9 @@ w.write(headers.join(",") + "\n");
 const managerSubInfo: ManagerSubInfo = {};
 
 for (const sub of subs) {
-  const encEmail = emailEncrypt(sub.email);
-  if (!sub.email || !encEmail) {
-    throw new Error(`${sub.id}: missing customer email / encryption failed`);
+  const hemail = emailHash(sub.email);
+  if (!sub.email || !hemail) {
+    throw new Error(`${sub.id}: missing customer email / hashing failed`);
   }
 
   const contact = emailToContact.get(sub.email);
@@ -173,7 +173,7 @@ for (const sub of subs) {
     contact.id,
     contact.account,
     sub.id,
-    encEmail,
+    hemail,
     sub.lead
   ];
   w.write(line.join(",") + "\n");
@@ -209,14 +209,14 @@ writeFile("./private/recurring.json", JSON.stringify(managerSubInfo, null, 2), (
 const managerEmailMap: ManagerEmailMap = {};
 for (const [account, emails] of accountToEmails.entries()) {
   for (const email of emails) {
-    const encEmail = emailEncrypt(email);
+    const hemail = emailHash(email);
     if (managerEmailMap[email]) {
       throw new Error(`duplicate email detected: ${email}`);
     }
-    if (!encEmail) {
+    if (!hemail) {
       throw new Error(`encryption failed: ${email}`);
     }
-    managerEmailMap[encEmail] = account;
+    managerEmailMap[hemail] = account;
   }
 }
 writeFile("./private/email-map.json", JSON.stringify(managerEmailMap, null, 2), ()=>{});
