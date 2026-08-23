@@ -230,6 +230,7 @@ const {
     document.documentElement.classList.add("safari");
   }
 
+  /* // for command event support - we don't currently use this
   if (!supports_invoker && !globalThis.CommandEvent) {
     (globalThis.CommandEvent as any) = class CommandEvent extends Event {
       constructor(type: string, options: any = {}) {
@@ -239,6 +240,7 @@ const {
       }
     };
   }
+  */
   if (!supports_invoker || !supports_closedby) {
     document.querySelectorAll<HTMLDialogElement>(`dialog.baselib`).forEach(dialog => {
       if (!supports_closedby) {
@@ -271,6 +273,7 @@ const {
 
           if (func) {
             invoker.addEventListener("click", (ev) => {
+              /* // for command event support - we don't currently use this
               const dialogEvent = new CommandEvent("command", {
                 bubbles: true,
                 cancelable: true,
@@ -281,6 +284,8 @@ const {
               if (!dialogEvent.defaultPrevented) {
                 func();
               }
+              */
+              func();
               ev.preventDefault();
             });
           }
