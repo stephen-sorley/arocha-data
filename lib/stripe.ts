@@ -1,8 +1,10 @@
 /**
  * Stripe
  * 
- * Return all recurring donation subscriptions, in a standard
- * format.
+ * https://github.com/stripe/stripe-node
+ * 
+ * Return all recurring donation subscriptions in a standard format, among
+ * other things.
  * 
  * See utils.ts for instructions on what environment variables this needs set.
  */
@@ -116,6 +118,8 @@ export const stripeConnect = () => {
 
   return new Stripe(fromEnv("STRIPE_KEY"), {
     telemetry: false,
+    timeout: 10 * 1000,
+    maxNetworkRetries: 2,
   });
 }
 

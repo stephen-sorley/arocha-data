@@ -1,8 +1,10 @@
 /**
  * PayPal
  * 
- * Return all recurring donation subscriptions, in a standard
- * format.
+ * https://github.com/paypal/PayPal-TypeScript-Server-SDK
+ * 
+ * Return all recurring donation subscriptions in a standard format, among other
+ * things.
  * 
  * See utils.ts for instructions on what environment variables this needs set.
  */
@@ -43,8 +45,17 @@ export const paypalConnect = (): PaypalConnection => {
       oAuthClientId: fromEnv("PAYPAL_ID"),
       oAuthClientSecret: fromEnv("PAYPAL_KEY"),
     },
-    timeout: 0,
-    environment: Environment.Production,
+    httpClientOptions: {
+      timeout: 10 * 1000,
+      retryConfig: {
+        maxNumberOfRetries: 2,
+        retryOnTimeout: true,
+      },
+    },
+    environment: fromEnv("PAYPAL_ID")?.startsWith("BAAVVL")?
+      Environment.Sandbox
+      :
+      Environment.Production,
   }));
 }
 
