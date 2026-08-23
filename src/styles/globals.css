@@ -114,11 +114,6 @@ html {
     }
   }
 
-  /* paragraph margins and spacing. */
-  p + p {
-    margin-block-start: 1.5em;
-  }
-
   /* links that open in new tab */
   a[target="_blank"]:not(:is(.default,.primary,.secondary)) {
     position: relative;

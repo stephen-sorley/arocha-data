@@ -31,9 +31,8 @@ const actionUrl = getActionPath(actions[actionName]);
           </svg>
           Success!
         </h3>
-        <p>
-          A login link was sent to your email. You can close this page now.
-        </p>
+        <p>A link was sent to <span class="notify">your email</span>.</p>
+        <p>You can close this page now.</p>
       </div>
       <div class="error">
         <h3>
@@ -89,6 +88,9 @@ const actionUrl = getActionPath(actions[actionName]);
   p {
     margin-top: var(--sp-sm);
     font-size: var(--text-base);
+  }
+  span.notify {
+    font-weight: 600;
   }
 
   div.status {
@@ -199,6 +201,7 @@ const actionUrl = getActionPath(actions[actionName]);
   const submitButton = form?.querySelector<HTMLButtonElement>('[type="submit"]');
   const emailInput = document.getElementById("email");
   const emailErr = document.getElementById("email-err");
+  const notify = form?.querySelector<HTMLSpanElement>("span.notify");
 
   submitButton?.removeAttribute("aria-disabled");
 
@@ -208,7 +211,8 @@ const actionUrl = getActionPath(actions[actionName]);
   form?.addEventListener("submit", async (ev) => {
     ev.preventDefault();
 
-    if (!form.dataset.action || !submitButton || !emailInput || !emailErr || submitButton.ariaDisabled === "true") {
+    if (!form.dataset.action || !submitButton || !emailInput || !emailErr
+      || !notify || submitButton.ariaDisabled === "true") {
       return; //prevent clicks during processing.
     }
 
@@ -227,9 +231,10 @@ const actionUrl = getActionPath(actions[actionName]);
     const result = text? JSON.parse(text) : {};
 
     if (response.ok) {
-      form.reset();
       emailInput.ariaInvalid = null;
       emailErr.replaceChildren();
+      notify.replaceChildren(formData.get("email") as (string | null) || "your email");
+      form.reset();
       form.dataset.state = "success";
     } else {
       emailErr.replaceChildren(
