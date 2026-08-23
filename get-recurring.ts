@@ -113,7 +113,8 @@ const sf = await sfConnect();
 start = performance.now();
 const {
   emailToContact,
-  accountToEmails
+  accountToEmails,
+  accountToGreeting,
 } = await sfEmailsToContacts(sf, subs.map(sub => sub.email as string));
 console.error(`Found SF contacts for ${subs.length} emails in ${(performance.now() - start)/1000}s`);
 
@@ -177,18 +178,26 @@ for (const sub of subs) {
   ];
   w.write(line.join(",") + "\n");
 
-  const managerSubs = managerSubInfo[contact.account] || [];
-  if (managerSubs.length === 0) {
+  const managerSubs = managerSubInfo[contact.account] || {
+    hasPaypal: false,
+    hasStripe: false,
+    subs: []
+  };
+  if (managerSubs.subs.length === 0) {
+    managerSubs.greeting = accountToGreeting.get(contact.account)?.trim() || undefined;
     managerSubInfo[contact.account] = managerSubs;
   }
-  managerSubs.push({
+  const processor = processorFromId(sub.id);
+  managerSubs.hasPaypal ||= processor === "paypal";
+  managerSubs.hasStripe ||= processor === "stripe";
+  managerSubs.subs.push({
     designation: sub.designation,
     amount: amount,
     frequency: sub.frequency,
     since: since,
     contactId: contact.id,
     processorId: sub.id,
-    processor: processorFromId(sub.id),
+    processor: processor,
   });
 }
 

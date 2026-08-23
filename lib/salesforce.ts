@@ -43,6 +43,8 @@ export type SfContactRecord = {
   last?: string,
 }
 
+const greetingField = "npo02__Informal_Greeting__c";
+
 export const sfEmailFields = [
   "npe01__HomeEmail__c",
   "npe01__WorkEmail__c",
@@ -56,6 +58,7 @@ export const sfEmailsToContacts = async (sf: SalesforceConnection, emails: strin
  
   const emailToContactMap = new Map<string, SfContactRecord>();
   const accountToEmailsMap = new Map<string, Set<string>>();
+  const accountToGreetingMap = new Map<string, string>();
 
   const emailLists: string[] = [];
   for (let i = 0; i < uniqueEmails.length; i += CHUNK) {
@@ -94,11 +97,17 @@ export const sfEmailsToContacts = async (sf: SalesforceConnection, emails: strin
     });
 
     const acctSoql =
-     `SELECT Id,AccountId,${sfEmailFields.join(",")} FROM Contact
+     `SELECT Id,AccountId,Account.${greetingField},${sfEmailFields.join(",")} FROM Contact
       WHERE AccountId IN ('${[...accountIds].join("','")}')`
     ;
     return sf.query(acctSoql).then((res) => {
       res.records.forEach(record => {
+        // Add account name to map.
+        const greeting = record.Account?.[greetingField].trim();
+        if (greeting) {
+          accountToGreetingMap.set(record.AccountId, greeting);
+        }
+
         // Upsert entry in accountToEmailsMap.
         const emailSet = accountToEmailsMap.get(record.AccountId) ?? new Set<string>();
         if (emailSet.size === 0) {
@@ -118,5 +127,6 @@ export const sfEmailsToContacts = async (sf: SalesforceConnection, emails: strin
   return {
     emailToContact: emailToContactMap,
     accountToEmails: accountToEmailsMap,
+    accountToGreeting: accountToGreetingMap,
   };
 }
