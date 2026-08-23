@@ -51,6 +51,16 @@ html {
     --duration-long: 0ms;
   }
 
+  /* Enables cross-document navigation */
+  @view-transition {
+    navigation: auto;
+  }
+
+  /* Changes the animation duration */
+  & ::view-transition-group(root) {
+    animation-duration: var(--duration);
+  }
+
 
   color: var(--color-fg);
   background-color: var(--color-bg);

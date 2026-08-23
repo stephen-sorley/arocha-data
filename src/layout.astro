@@ -14,6 +14,8 @@ const {
   ...rest
 } = Astro.props;
 
+const rootPage = "/legacy-donation-manager";
+
 const currentYear = new Date().getFullYear();
 ---
 
@@ -35,7 +37,15 @@ const currentYear = new Date().getFullYear();
             <span class="sr-only">Home - A Rocha USA</span>
           </a>
         </nav>
-        <h1>{title}</h1>
+        <h1>
+          {Astro.url.pathname===rootPage? (
+          <span>{title}</span>
+          ) : (
+          <a href={rootPage}>
+            <span>{title}</span>
+          </a>
+          )}
+        </h1>
       </div>
     </header>
     <main {...rest}>
@@ -98,6 +108,25 @@ body {
         align-content: center;
         width: max-content;
         font-weight: bolder;
+
+        &> span, a {
+          padding-inline: 1ch;
+          padding-block-start: 0.25lh;
+          padding-block-end: 0.55lh;
+        }
+        a {
+          text-decoration: underline;
+          text-decoration-thickness: from-font;
+          text-decoration-color: transparent;
+          text-underline-offset: 0.1lh;
+          transition:
+            background-color var(--duration) ease,
+            text-decoration-color var(--duration) ease;
+          &:hover {
+            background-color: color-mix(in oklch, var(--color-bg), var(--color-fg) 2.5%);
+            text-decoration-color: currentColor;
+          }
+        }
       }
 
       img {
