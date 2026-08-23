@@ -1,0 +1,293 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+export type Props = Omit<HTMLAttributes<"dialog">, "closedby"> & {
+  id: string,
+
+  closeButton?: boolean,
+
+  location?: "center" | "right" | "left" | "top" | "bottom",
+}
+
+const {
+  id,
+  closeButton = true,
+  location = "center",
+  class: className,
+  ...rest
+} = Astro.props;
+---
+
+<dialog id={id} class:list={["baselib",location,className]} closedby="any" {...rest}>
+  {/* This silly div is for Safari Fix #1 (see bottom of style tag). */}
+  <div tabindex=-1 autofocus class="sr-only"/>
+
+  <slot />
+
+  { closeButton && (
+  <button type="button" commandfor={id} command="close">
+    <svg aria-hidden="true" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 6l-12 12" /><path d="M6 6l12 12" />
+    </svg>
+    <span class="sr-only">Close</span>
+  </button>
+  )}
+</dialog>
+
+<style>
+@layer components {
+  
+  button {
+    position: absolute;
+    inset: 0 0 auto auto;
+    width: fit-content;
+    height: fit-content;
+    padding: var(--sp-2xs);
+
+    color: color-mix(in oklch, currentColor, var(--color-bg) 80%);
+    font-size: var(--text-xs);
+    svg {
+      width: 1lh;
+      height: 1lh;
+    }
+  }
+
+  dialog {
+    overflow-x: hidden;
+    overflow-y: auto;
+    touch-action: pan-y;
+    scrollbar-gutter: auto;
+    padding: 0;
+
+    box-shadow:
+      0 4px 20px -1px rgb(0 0 0 / 0.25), 
+      0 2px 8px -1px rgb(0 0 0 / 0.2), 
+      0 1px 3px 0 rgb(0 0 0 / 0.15);
+
+
+    /* --------------------------------------- *
+     * these styles are for positioning, width *
+     * and height for each anchor location.    *
+     * --------------------------------------- */
+
+    inset: 0;
+    width: fit-content;
+    height: fit-content;
+    
+    &.center {
+      --center-transform: translateX(-50%) translateY(-50%);
+      inset: 50% auto auto 50%;
+      transform: var(--center-transform);
+      max-width: 94dvw;
+      max-height: 94dvh;
+      border-radius: var(--radius-lg);
+    }
+
+    &:is(.left,.right) {
+      height: 100%;
+      max-width: 75dvw;
+      max-height: 100dvh;
+    }
+    &.left {
+      right: auto;
+      border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    }
+    &.right {
+      left: auto;
+      border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+    }
+
+    &:is(.top,.bottom) {
+      width: 100%;
+      max-width: 100dvw;
+      max-height: 75dvh;
+    }
+    &.top {
+      bottom: auto;
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    }
+    &.bottom {
+      top: auto;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    &[open] {
+      display: flex;
+    }
+
+
+    /* --------------------------------------- *
+     * the rest of these dialog styles are for *
+     * animation and scrolling control.        *
+     * --------------------------------------- */
+
+    --transform: none;
+    @media (prefers-reduced-motion: no-preference) {
+      &.right { --transform: translateX(100%); }
+      &.left {  --transform: translateX(-100%); }
+      &.top {   --transform: translateY(-100%); }
+      &.bottom {--transform: translateY(100%); }
+      &.center {--transform: var(--center-transform) scale(0.95); }
+    }
+
+    overscroll-behavior: contain;
+
+    transition:
+      transform var(--duration-long) ease-out,
+      opacity   var(--duration-long) ease-out,
+      display   var(--duration-long) allow-discrete,
+      overlay   var(--duration-long) allow-discrete;
+
+    &::backdrop {
+      overflow: hidden;
+      overscroll-behavior: contain;
+
+      --backdrop-transition:
+        background-color var(--duration-long) ease-out,
+        display          var(--duration-long) allow-discrete,
+        overlay          var(--duration-long) allow-discrete;
+      transition:
+        var(--backdrop-transition),
+        backdrop-filter 0ms linear; /* performance: don't animate blur, remove it immediately at beginning of exit animation */
+    }
+
+    /* Step #3: on the way out */
+    &:not([open]) {
+      opacity: 0;
+      transform: var(--transform);
+
+      &::backdrop {
+        background-color: transparent;
+        backdrop-filter: blur(0px);
+      }
+    }
+
+    /* Step #2: open */
+    &[open] {
+      opacity: 1;
+
+      &::backdrop {
+        background-color: rgb(0 0 0 / 0.7);
+        backdrop-filter: blur(3px); /* keep blur radius small for perf on cheap devices */
+        transition:
+          var(--backdrop-transition),
+          backdrop-filter 0ms linear var(--duration-long); /* performance: delay blur until end of entrance animation */;
+      }
+
+      /* Step #1: on the way in */
+      @starting-style {
+        opacity: 0;
+        transform: var(--transform);
+
+        &::backdrop {
+          background-color: transparent;
+          backdrop-filter: blur(0px);
+        }
+      }
+    }
+  }
+
+  /* BEGIN Safari-specific fixes. */
+  /* Fix #1:
+   *  Enable a sr-only div that eats focus at the beginning of each modal.
+   *
+   *  This mitigates a bug where Safari applies :focus-visible styling even when
+   *  the keyboard wasn't used to open the dialog.
+   */
+  div[autofocus].sr-only {
+    display: none;
+  }
+  :global(.safari) div[autofocus].sr-only {
+    display: block;
+  }
+} /* END components layer block */
+  /* Fix #2: (must be outside layer to work properly)
+   *  Prevent scrolling of background page when modals are open - Safari doesn't
+   *  respect the more targeted settings that other browsers have.
+   *  
+   *  This isn't quite as nice - if the dialog gets hidden without being closed
+   *  for some reason (like if the screen orientation flips and hides a mobile
+   *  menu), the page will be visible but unscrollable. It's much better than
+   *  nothing, though.
+   */
+  :global(.safari:has(dialog.baselib[open]) body) {
+    overscroll-behavior: none !important;
+    touch-action: none !important;
+    overflow: hidden !important;
+  }
+  /* END Safari-specific fixes. */
+</style>
+
+<script>
+// Polyfills and bugfixes for native dialogs. -----
+{
+  //    <dialog> closedBy attribute not yet newly available (still in TP on Safari).
+  const supports_closedby = (document.createElement("dialog") as any).closedBy === "none";
+  //    Invoker Commands API is supported everywhere in baseline Dec 2025.
+  const supports_invoker = (Object.hasOwn(HTMLButtonElement.prototype, 'command'));
+  //    Safari has some bugs of its own - add CSS class so we can detect when we're on Safari.
+  if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+    document.documentElement.classList.add("safari");
+  }
+
+  if (!supports_invoker && !globalThis.CommandEvent) {
+    (globalThis.CommandEvent as any) = class CommandEvent extends Event {
+      constructor(type: string, options: any = {}) {
+        super(type, options);
+        (this as any).source = options.source || null;
+        (this as any).command = options.command || '';
+      }
+    };
+  }
+  if (!supports_invoker || !supports_closedby) {
+    document.querySelectorAll<HTMLDialogElement>(`dialog.baselib`).forEach(dialog => {
+      if (!supports_closedby) {
+        // Support "light dismiss" of modal (clicking outside it), if closedby attribute isn't available.
+        dialog.addEventListener('click', (e) => {
+          const edges = dialog.getBoundingClientRect();
+          if (e.clientX < edges.left || e.clientX > edges.right ||
+              e.clientY < edges.top  || e.clientY > edges.bottom) {
+            e.preventDefault();
+            dialog.close();
+          }
+        });
+      }
+
+      if (!supports_invoker && dialog.id) {
+        // Manually add event listeners to open and close buttons, if Invoker API isn't supported.
+        const invokers = document.querySelectorAll(`button[commandfor="${dialog.id}"]`);
+        for (const invoker of invokers) {
+          const command = invoker.getAttribute("command");
+          invoker.removeAttribute("command");
+          invoker.removeAttribute("commandfor");
+
+          let func: typeof dialog.showModal | typeof dialog.close | undefined;
+          if (command === "show-modal") {
+            invoker.ariaHasPopup = "dialog";
+            func = dialog.showModal;
+          } else if (command === "close") {
+            func = dialog.close;
+          }
+
+          if (func) {
+            invoker.addEventListener("click", (ev) => {
+              const dialogEvent = new CommandEvent("command", {
+                bubbles: true,
+                cancelable: true,
+                source: invoker,
+                command: command || undefined
+              });
+              dialog.dispatchEvent(dialogEvent);
+              if (!dialogEvent.defaultPrevented) {
+                func();
+              }
+              ev.preventDefault();
+            });
+          }
+        }
+      }
+    });
+  }
+}
+// END polyfills and bugfixes for native dialogs -----
+</script>
