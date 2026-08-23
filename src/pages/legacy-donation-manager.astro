@@ -25,7 +25,7 @@ const actionUrl = getActionPath(actions[actionName]);
     <div class="status" tabindex="-1">
       <div class="success">
         <h3>
-          <svg width="1lh" height="1lh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg aria-hidden="true" width="1lh" height="1lh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
             <path d="M9 12l2 2l4 -4" />
           </svg>
@@ -113,11 +113,13 @@ const actionUrl = getActionPath(actions[actionName]);
       div.success { display: none; }
       div.error {   display: block; }
       border-color: var(--color-error);
+      svg { color: var(--color-error); }
     }
     &[data-state="success"] {
       div.success { display: block; }
       div.error {   display: none; }
       border-color: 3px solid var(--color-success);
+      svg { color: var(--color-success); }
     }
   }
   
