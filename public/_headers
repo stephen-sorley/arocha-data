@@ -13,6 +13,7 @@
 
 # Apply these headers to all paths served.
 /*
+  Cache-Control: public, no-transform
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Frame-Options: SAMEORIGIN
   X-Content-Type-Options: nosniff
