@@ -18,9 +18,6 @@ import IconUnknown  from "../help.svg";
 
 export const prerender = false;
 
-// Allow submitting forms.
-Astro.csp?.insertDirective("form-action 'self'");
-
 const {subInfo} = getSubInfo(Astro.params.token);
 if (!subInfo) {
   return new Response("Account not found", { status: 404 });

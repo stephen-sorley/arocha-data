@@ -42,10 +42,12 @@ export default defineConfig({
         "base-uri 'none'",
         // upgrade http resource requests to https automatically
         "upgrade-insecure-requests",
-        // default everything else to off, except for img-src and font-src
+        // default everything else to very restrictive settings
         "default-src 'none'",
         "img-src 'self' data:",
         "font-src 'self'",
+        "form-action 'self'",
+        "connect-src 'self'"
       ],
     },
   },
