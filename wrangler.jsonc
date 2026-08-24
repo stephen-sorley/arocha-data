@@ -12,8 +12,8 @@
 		// Prevent random requests from running workers.
 		"not_found_handling": "404-page",
 		"run_worker_first": [
-			"/_actions/login-8sdf4wdadf", // execute workers for Astro Actions endpoints
-			"/_actions/cancel-ck57pO5s",
+			"/_actions/login-8sdf4wdadf*", // execute workers for Astro Actions endpoints
+			"/_actions/cancel-ck57pO5s*",
 			"/legacy-donor-8xje-*" // execute workers for rendering donor portal pages
 		]
 	},
