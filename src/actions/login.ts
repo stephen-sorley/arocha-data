@@ -46,7 +46,7 @@ export const login = {
         console.error(`login form: ${input.email} (${hemail}) does not match any known donor emails.`);
         throw new ActionError({code:"FORBIDDEN", message:`Try a different email - we can't find that one in our records.`});
       }
-      input.link = `https://donors.arocha.us/legacy/donor-8xje-${hemail}`;
+      input.link = `https://donors.arocha.us/legacy-donor-8xje-${hemail}`;
 
       await sendToWebhook("LOGIN_FORM_DEST", "login", input);
     }
