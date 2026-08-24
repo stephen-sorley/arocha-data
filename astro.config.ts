@@ -5,7 +5,7 @@ import { Features } from "lightningcss";
 import cloudflare from "@astrojs/cloudflare";
 
 export default defineConfig({
-  site: "https://donors.arocha.us",
+  site: "https://donors.arocha.us/",
   output: "static",
   adapter: cloudflare({
     imageService: "compile",
@@ -17,7 +17,6 @@ export default defineConfig({
   image: {
     // Enable responsive images:
     layout: "constrained",
-    responsiveStyles: true,
     // Authorize pulling all remote images into the build, as long as they're served over https:
     remotePatterns: [{ protocol: "https" }],
   },

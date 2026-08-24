@@ -5,7 +5,8 @@
   This was adapted from here:
     https://github.com/n3r4zzurr0/svg-spinners/blob/main/svg-css/ring-resize.svg
  */
-import { type HTMLAttributes } from 'astro/types'
+import { type HTMLAttributes } from 'astro/types';
+import { clean } from "./cleanprops.ts";
 
 type Props = HTMLAttributes<"svg"> | HTMLAttributes<"div">;
 
@@ -14,7 +15,7 @@ const {
 } = Astro.props;
 
 ---
-<svg aria-hidden="true" stroke="currentcolor" viewBox="0 0 24 24" {...rest}>
+<svg aria-hidden="true" stroke="currentcolor" viewBox="0 0 24 24" {...clean(rest)}>
   <g>
     <circle cx="12" cy="12" r="9.5" fill="none" stroke-width="3"/>
   </g>

@@ -151,7 +151,8 @@ const heading = subInfo.greeting?
   </div>
 </Layout>
 
-<script> {
+<script>
+{
   /*
     Clean up action-related query params after page loads.
 
@@ -162,7 +163,8 @@ const heading = subInfo.greeting?
   const url = new URL(window.location.href);
   url.searchParams.delete("_action");
   window.history.replaceState({ path: url.href }, '', url.href);
-} </script>
+}
+</script>
 
 <style>
 div.heading {
@@ -222,19 +224,19 @@ div:is(.error,.success) {
   justify-content: center;
 }
 
-.sub {
+:global(.sub) {
   font-family: var(--font-main);
   flex: 0 1 32ch;
 
-  &[data-status="unknown"] > :global(.header) {
+  &[data-status="unknown"] > :global(.card-header) {
     --tint: var(--color-warning);
     --tint-ratio: 10%;
   }
-  &[data-status="active"] > :global(.header) {
+  &[data-status="active"] > :global(.card-header) {
     --tint: var(--color-success);
     --tint-ratio: 8%;
   }
-  &[data-status="inactive"] > :global(.header) {
+  &[data-status="inactive"] > :global(.card-header) {
     --tint: var(--color-error);
     --tint-ratio: 7%;
   }
@@ -246,24 +248,25 @@ div:is(.error,.success) {
     grid-template-rows: 1fr min-content;
     gap: var(--sp-md);
   }
-  div.details {
-    display: flex;
-    font-size: calc(var(--text-base) * 0.9);
-    flex-direction: column;
-    align-items: start;
-    width: 100%;
-    gap: var(--sp-xs);
+}
 
-    div {
-      flex: 0 1 auto;
-    }
+div.details {
+  display: flex;
+  font-size: calc(var(--text-base) * 0.9);
+  flex-direction: column;
+  align-items: start;
+  width: 100%;
+  gap: var(--sp-xs);
+
+  div {
+    flex: 0 1 auto;
   }
-  div.inactive {
-    text-align: center;
-    padding-inline: 1lh;
-    padding-block: 0.25lh;
-    border: 0.125em solid var(--color-border);
-  }
+}
+div.inactive {
+  text-align: center;
+  padding-inline: 1lh;
+  padding-block: 0.25lh;
+  border: 0.125em solid var(--color-border);
 }
 
 form.confirm {

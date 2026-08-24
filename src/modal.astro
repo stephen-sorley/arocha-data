@@ -1,5 +1,7 @@
 ---
 import type { HTMLAttributes } from "astro/types";
+import { clean } from "./cleanprops.ts";
+
 
 export type Props = Omit<HTMLAttributes<"dialog">, "closedby"> & {
   id: string,
@@ -18,7 +20,7 @@ const {
 } = Astro.props;
 ---
 
-<dialog id={id} class:list={["baselib",location,className]} closedby="any" {...rest}>
+<dialog id={id} class:list={["baselib",location,className]} closedby="any" {...clean(rest)}>
   {/* This silly div is for Safari Fix #1 (see bottom of style tag). */}
   <div tabindex=-1 autofocus class="sr-only"/>
 
@@ -36,7 +38,6 @@ const {
 
 <style>
 @layer components {
-  
   button {
     position: absolute;
     inset: 0 0 auto auto;
@@ -197,7 +198,7 @@ const {
   div[autofocus].sr-only {
     display: none;
   }
-  :global(.safari) div[autofocus].sr-only {
+  :global(.safari) dialog.baselib > div[autofocus].sr-only {
     display: block;
   }
 } /* END components layer block */

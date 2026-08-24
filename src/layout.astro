@@ -1,6 +1,6 @@
 ---
 import type { HTMLAttributes } from "astro/types";
-import { Image } from "astro:assets";
+import { clean } from "./cleanprops.ts";
 
 import logo from "./logo.png";
 import "./styles/globals.css";
@@ -24,18 +24,33 @@ const currentYear = new Date().getFullYear();
 <html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8"/>
+    <title>{title + " - A Rocha USA"}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" href="/favicon.ico">
     <link rel="preload" as="font" type="font/woff2" href="/EzzoBook.woff2" crossorigin="anonymous" />
+    <link rel="preload" as="image" href={logo.src} type="image/png" />
+    <style is:inline>
+      @layer reset, base, components, utilities;
+    </style>
   </head>
   <body>
     <header>
-      <div class="cap"></div>
-      <div class="heading">
+      <div></div>
+
+      <div>
         <nav>
           <a href="https://arocha.us">
-            <Image src={logo} alt="" aria-hidden="true" priority={true} width={2026} height={530} />
+            <img 
+              src={logo.src} 
+              width={logo.width} 
+              height={logo.height} 
+              aria-hidden="true"
+              alt=""
+              loading="eager"
+              fetchpriority="high"
+              decoding="sync"
+            />
             <span class="sr-only">Home - A Rocha USA</span>
           </a>
         </nav>
@@ -50,122 +65,125 @@ const currentYear = new Date().getFullYear();
         </h1>
       </div>
     </header>
-    <main {...rest}>
+
+    <main {...clean(rest)}>
       <slot />
     </main>
-    <footer class="cap">
+
+    <footer>
       <div>&copy; {currentYear} A ROCHA USA</div>
     </footer>
   </body>
 </html>
 
-<style> @layer components {
+<style>
+@layer components {
+
 body {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   overflow-x: clip;
+}
 
-  .cap {
-    font-size: var(--text-base);
+header {
+  background-color: var(--color-bg);
+  box-shadow: 0 0.5rem 0.375rem 0 rgba(0, 0, 0, 0.3);
+
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto;
+  width: 100%;
+
+  div:nth-of-type(1) {
+    background-color: var(--color-main);
     min-height: 2lh;
     width: 100%;
   }
 
-  header {
-    background-color: var(--color-bg);
-    box-shadow: 0 0.5rem 0.375rem 0 rgba(0, 0, 0, 0.3);
-
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-    width: 100%;
-
-    div.cap {
-      background-color: var(--color-main);
-    }
-
-    div.heading {
-      max-width: var(--content-width);
-      justify-self: center;
-      width: 100%;
-
-      color: var(--color-alt3);
-      padding-inline: var(--sp-sm);
-      padding-block: var(--sp-md);
-
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--sp-sm);
-      font-size: var(--text-xl);
-     
-      nav {
-        overflow: visible;
-      }
-      
-      h1 {
-        align-content: center;
-        width: max-content;
-        font-weight: bolder;
-
-        &> span, a {
-          padding-inline: 1ch;
-          padding-block-start: 0.25lh;
-          padding-block-end: 0.55lh;
-        }
-        a {
-          text-decoration: underline;
-          text-decoration-thickness: from-font;
-          text-decoration-color: transparent;
-          text-underline-offset: 0.1lh;
-          transition:
-            background-color var(--duration) ease,
-            text-decoration-color var(--duration) ease;
-          &:hover {
-            background-color: color-mix(in oklch, var(--color-bg), var(--color-fg) 2.5%);
-            text-decoration-color: currentColor;
-          }
-        }
-      }
-
-      img {
-        max-height: 2lh;
-        max-width: 100%;
-        height: auto;
-        width: auto;
-      }
-    }
-  }
-
-  main {
-    flex-grow: 1;
-    flex-shrink: 0;
-    flex-basis: auto;
-    align-self: center;
-    margin-block: 0.875rem;
-    width: 100%;
+  div:nth-of-type(2) {
     max-width: var(--content-width);
+    justify-self: center;
+    width: 100%;
+
+    color: var(--color-alt3);
+    padding-inline: var(--sp-sm);
+    padding-block: var(--sp-md);
 
     display: flex;
-    flex-direction: column;
-
-    padding: var(--sp-md);
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-sm);
+    font-size: var(--text-xl);
+  }
+    
+  nav {
+    overflow: visible;
   }
 
-  footer {
-    background-color: var(--color-alt3);
-    color: var(--color-bg);
+  img {
+    height: 2lh;
+    width: auto;
+    max-width: 100%;
+  }
+    
+  h1 {
+    align-content: center;
+    width: max-content;
+    font-weight: bolder;
 
-    div {
-      padding-block: var(--sp-sm);
-      margin-inline: auto;
-      font-weight: bold;
-      display: grid;
-      place-items: center;
+    &> span, a {
+      padding-inline: 1ch;
+      padding-block-start: 0.25lh;
+      padding-block-end: 0.55lh;
+    }
+    a {
+      text-decoration: underline;
+      text-decoration-thickness: from-font;
+      text-decoration-color: transparent;
+      text-underline-offset: 0.1lh;
+      transition:
+        background-color var(--duration) ease,
+        text-decoration-color var(--duration) ease;
+      &:hover {
+        background-color: color-mix(in oklch, var(--color-bg), var(--color-fg) 2.5%);
+        text-decoration-color: currentColor;
+      }
     }
   }
 }
-} </style>
+
+main {
+  flex-grow: 1;
+  flex-shrink: 0;
+  flex-basis: auto;
+  align-self: center;
+  margin-block: 0.875rem;
+  width: 100%;
+  max-width: var(--content-width);
+
+  display: flex;
+  flex-direction: column;
+
+  padding: var(--sp-md);
+}
+
+footer {
+  min-height: 2lh;
+  width: 100%;
+  background-color: var(--color-alt3);
+  color: var(--color-bg);
+
+  div {
+    padding-block: var(--sp-sm);
+    margin-inline: auto;
+    font-weight: bold;
+    display: grid;
+    place-items: center;
+  }
+}
+
+}
+</style>

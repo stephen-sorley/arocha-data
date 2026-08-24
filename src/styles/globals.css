@@ -177,6 +177,17 @@ html {
       }
     }
   }
+
+  [data-astro-image] {
+    object-fit: var(--fit, cover);
+    object-position: var(--pos, center);
+  }
+  [data-astro-image='full-width'] {
+    width: 100%;
+  }
+  [data-astro-image='constrained'] {
+    max-width: 100%;
+  }
 }
 
 /* A Rocha USA Brand Font */

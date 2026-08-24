@@ -1,6 +1,7 @@
 ---
 import type { AstroComponentFactory } from "astro/runtime/server/index.js";
 import type { Polymorphic } from "astro/types";
+import { clean } from "./cleanprops.ts";
 
 export type Props<Tag extends "section" | "form"> = Polymorphic<{ as: Tag }> & {
   title?: string,
@@ -27,8 +28,8 @@ const {
 
 const H = level;
 ---
-<Tag class:list={[className]} {...rest}>
-  <H class:list={["header", align]}>
+<Tag class:list={[className]} {...clean(rest)}>
+  <H class:list={["card-header", align]}>
     { Icon && align !== "start" && (
     <Fragment>
       <Icon aria-hidden="true" />
@@ -43,13 +44,14 @@ const H = level;
     </Fragment>
     )}
   </H>
-  <div class="body">
+  <div class="card-body">
     <slot />
   </div>
 </Tag>
 
 
-<style> @layer components {
+<style>
+@layer components {
   :is(section, form) {
     border-radius: var(--radius-md);
     box-shadow:
@@ -63,7 +65,7 @@ const H = level;
     grid-template-columns: 1fr;
   }
 
-  .header {
+  .card-header {
     &.center span { text-align: center; }
     &.start span {  text-align: start; }
     &.end span {    text-align: end; }
@@ -87,7 +89,7 @@ const H = level;
     font-size: var(--text-xl);
 
     /* Caller may have passed in an optional header icon. */
-    svg {
+    :global(svg) {
       flex-shrink: 0;
       width: 1lh;
       height: 1lh;
@@ -95,8 +97,9 @@ const H = level;
     }
   }
 
-  .body {
+  .card-body {
     padding: var(--sp-sm);
     width: 100%;
   }
-} </style>
+}
+</style>
