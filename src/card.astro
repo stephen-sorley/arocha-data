@@ -81,6 +81,7 @@ const H = level;
     --bg: var(--color-bg);
     --tint: var(--fg);
     --tint-ratio: 3%;
+    --tint-ratio-icon: calc(var(--tint-ratio)*5);
     color: var(--fg);
     background-color: color-mix(in oklch, var(--bg), var(--tint) var(--tint-ratio));
     border-block-end: 1px solid color-mix(in oklch, var(--bg), var(--tint) calc(var(--tint-ratio) * 2));
@@ -93,7 +94,7 @@ const H = level;
       flex-shrink: 0;
       width: 1lh;
       height: 1lh;
-      color: var(--tint);
+      color: color-mix(in oklch, var(--bg), var(--tint) var(--tint-ratio-icon));
     }
   }
 

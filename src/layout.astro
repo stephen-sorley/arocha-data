@@ -12,7 +12,7 @@ export interface Props extends HTMLAttributes<"main"> {
 
 const {
   title,
-  nolink = true,
+  nolink = false,
   ...rest
 } = Astro.props;
 
@@ -66,10 +66,16 @@ const currentYear = new Date().getFullYear();
       </div>
     </header>
 
+    
+    <div class="lmargin"></div>
+
     <main {...clean(rest)}>
       <slot />
     </main>
 
+    <div class="rmargin"></div>
+
+    
     <footer>
       <div>&copy; {currentYear} A ROCHA USA</div>
     </footer>
@@ -79,32 +85,59 @@ const currentYear = new Date().getFullYear();
 <style>
 @layer components {
 
+html, body {
+  background-color: var(--color-alt3);
+}
+
 body {
   min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  place-items: center;
   overflow-x: clip;
+  overscroll-behavior: none;
+
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr minmax(0, var(--content-width)) 1fr;
+  grid-template-areas: 
+    "header header header"
+    "lmargin main rmargin"
+    "footer footer footer";
+}
+header   { grid-area: header; }
+.lmargin { grid-area: lmargin; width: 100%; height: 100%; }
+main     { grid-area: main; }
+.rmargin { grid-area: rmargin; width: 100%; height: 100%; }
+footer   { grid-area: footer; }
+
+body > * > * {
+  grid-column: 2;
+}
+
+/* background for main page contents and left/right margins. */
+body > div, main {
+  background-color: var(--color-bg);
 }
 
 header {
   background-color: var(--color-bg);
   box-shadow: 0 0.5rem 0.375rem 0 rgba(0, 0, 0, 0.3);
+  z-index: 1;
 
   display: grid;
-  grid-template-columns: 1fr;
   grid-template-rows: auto auto;
+  grid-template-columns: subgrid;
+  place-items: center;
   width: 100%;
 
   div:nth-of-type(1) {
+    grid-column: 1 / -1;
+
     background-color: var(--color-main);
-    min-height: 2lh;
+    height: 2lh;
     width: 100%;
   }
 
   div:nth-of-type(2) {
-    max-width: var(--content-width);
-    justify-self: center;
     width: 100%;
 
     color: var(--color-alt3);
@@ -135,7 +168,6 @@ header {
     font-weight: bolder;
 
     &> span, a {
-      padding-inline: 1ch;
       padding-block-start: 0.25lh;
       padding-block-end: 0.55lh;
     }
@@ -156,21 +188,22 @@ header {
 }
 
 main {
-  flex-grow: 1;
-  flex-shrink: 0;
-  flex-basis: auto;
-  align-self: center;
-  margin-block: 0.875rem;
+  height: 100%;
   width: 100%;
-  max-width: var(--content-width);
 
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template: 1fr / 1fr;
+  
+  background-color: var(--color-bg);
 
   padding: var(--sp-md);
 }
 
 footer {
+  display: grid;
+  grid-template-columns: subgrid;
+  place-items: center;
+
   min-height: 2lh;
   width: 100%;
   background-color: var(--color-alt3);

@@ -241,12 +241,16 @@ div:is(.error,.success) {
     --tint-ratio: 7%;
   }
 
-  &> :global(.body) {
+  &> :global(.card-body) {
     padding-block-start: var(--sp-xs);
     display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: 1fr min-content;
     gap: var(--sp-md);
+
+    :is(.default,.primary) {
+      font-family: var(--font-form);
+    }
   }
 }
 
@@ -264,6 +268,7 @@ div.details {
 }
 div.inactive {
   text-align: center;
+  font-family: var(--font-form);
   padding-inline: 1lh;
   padding-block: 0.25lh;
   border: 0.125em solid var(--color-border);
