@@ -150,7 +150,8 @@ for (const sub of subs) {
   const contact = emailToContact.get(sub.email);
 
   if (!contact || !contact.account) {
-    throw new Error(`${sub.id}: missing SF contact or account for ${sub.firstName} ${sub.lastName} <${sub.email}>`);
+    const msg = `${sub.id}: missing SF contact or account for ${sub.firstName} ${sub.lastName} <${sub.email}>`;
+    throw new Error(msg);
   }
 
   const npayments = sub.frequency === "year"? 1 : (sub.frequency === "quarter"? 4 : 12);
