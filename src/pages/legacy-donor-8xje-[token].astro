@@ -105,7 +105,7 @@ const heading = subInfo.greeting?
         <div>ID: <span>{sub.processor === "cnp"? getCnpId(sub.processorId) : sub.processorId}</span></div>
       </div>
       { sub.processor === "cnp" && (
-      <a class="primary" href={sub.processorId} target="_blank">
+      <a class="primary" href={sub.processorDonorUrl} target="_blank">
         Manage at Click and Pledge
       </a>
       )}

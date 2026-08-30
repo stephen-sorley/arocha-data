@@ -65,6 +65,7 @@ export type RecurringSub = {
   lastName?: string,
   amount: number,
   frequency: "month" | "quarter" | "year",
+  donorUrl?: string,
 }
 
 export type RecurringStatus = "active" | "inactive" | "unknown";
@@ -99,9 +100,9 @@ export const statusFromString = (str?: string | null): RecurringStatus => {
 
 export type Processor = "cnp" | "paypal" | "stripe";
 export const processorFromId = (id: string): Processor => {
-  if (id.startsWith("https"))
-    return "cnp";
+  if (id.startsWith("sub_"))
+    return "stripe";
   if (id.startsWith("I-"))
     return "paypal";
-  return "stripe";
+  return "cnp";
 }

@@ -61,7 +61,10 @@ const subs: RecurringSub[] = [];
 // Get all active recurring subscriptions from Stripe.
 const stripe = stripeConnect();
 let start = performance.now();
-const stripeSubs = await stripeListSubs(stripe);
+const stripeSubs = [
+  ...(await stripeListSubs(stripe, {status: "active"})),
+  ...(await stripeListSubs(stripe, {status: "past_due"})),
+];
 for (const sub of stripeSubs) {
   subs.push(stripeNormalizeSub(sub))
 }
@@ -82,6 +85,14 @@ console.error(`Retrieved ${paypalSubs.length} PayPal subscriptions in ${(perform
 
 
 // Get all recurring subscriptions from manually-collected Click and Pledge data.
+const idToBase64 = (id: string) => {
+  if (!id.startsWith("38072-")) {
+    throw new Error("Not a CNP id: " + id);
+  }
+  let hex = BigInt(id.slice(6)).toString(16);
+  if (hex.length % 2 !== 0) hex = '0' + hex;
+  return "cnp_" + Buffer.from(hex, 'hex').toString('base64url');
+}
 for (const sub of cnp) {
   let freq: RecurringSub["frequency"];
   if (sub.Frequency === "month" || sub.Frequency === "quarter" || sub.Frequency === "year") {
@@ -90,7 +101,7 @@ for (const sub of cnp) {
     freq = "month";
   }
   subs.push({
-    id: sub["Donor Portal Link"],
+    id: idToBase64(sub["Processor Subscription ID"]),
     since: sub.Since,
     lead: "CnP",
     email: emailNorm(sub.Email),
@@ -99,6 +110,7 @@ for (const sub of cnp) {
     lastName: sub["Last Name"],
     amount: sub.Amount,
     frequency: freq,
+    donorUrl: sub["Donor Portal Link"],
   });
 }
 console.error(`Retrieved ${cnp.length} subscriptions from manually-collected Click and Pledge data`);
