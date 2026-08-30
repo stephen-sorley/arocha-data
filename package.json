@@ -14,15 +14,15 @@
     "postinstall": "pnpm up --depth=Infinity --no-save caniuse-lite baseline-browser-mapping"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^14.2.3",
+    "@astrojs/cloudflare": "^14.2.5",
     "@paypal/paypal-server-sdk": "^2.5.0",
-    "@types/node": "^26.2.0",
-    "astro": "^7.2.4",
+    "@types/node": "^26.4.0",
+    "astro": "^7.2.9",
     "browserslist-to-esbuild": "^2.1.1",
     "dotenv": "^17.4.2",
-    "jsforce": "^3.10.22",
+    "jsforce": "^3.10.24",
     "lightningcss": "^1.33.0",
-    "stripe": "^22.5.0",
-    "wrangler": "^4.125.0"
+    "stripe": "^22.6.0",
+    "wrangler": "^4.127.1"
   }
 }
