@@ -88,7 +88,7 @@ const getCnpId = (id: string) => {
       )}
     </div>
     {subInfo.subs.map((sub, i) => (
-    <Card class="sub" level="h3" align="start"
+    <Card class="sub" level="h2" align="start"
       title={`$${sub.amount} / ${sub.frequency}`}
       data-status={statuses[i]}
       icon={getIcon(statuses[i])}
