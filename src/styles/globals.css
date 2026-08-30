@@ -12,8 +12,8 @@
 
 html {
   /* Font families. */
-  /*     A Rocha USA brand font, and native fallbacks */
-  --font-main: "Ezzo", "Fallback", sans-serif;
+  /*     DM Sans from Google Fonts - similar to Ezzo, but variable and free */
+  --font-main: "DM Sans", sans-serif;
   /*     Geometric Humanist from modernfontstacks.com */
   --font-form: Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif;
 
@@ -189,27 +189,14 @@ html {
     max-width: 100%;
   }
 }
-
-/* A Rocha USA Brand Font */
 @font-face {
-  font-family: "Ezzo";
+  font-family: "DM Sans";
+  src: local("DM Sans"), 
+       local("DMSans"), 
+       url("/DMSans.woff2") format("woff2");
+  font-weight: 100 1000;
   font-style: normal;
-  src: local('Ezzo Book'), 
-       local('Ezzo-Book'), 
-       local('Ezzo'),
-       local('ezzo'),
-       url('/EzzoBook.woff2') format('woff2');
-  font-weight: 400;
   font-display: swap;
-}
-/* Fallback font chosen for minimal layout shift vs brand font
- * (used the Fallback Font Generator here: https://screenspan.net/fallback)
- */
-@font-face {
-  font-family: "Fallback";
-  src: local(Verdana);
-  size-adjust: 93%;
-  ascent-override: 141%;
 }
 
 } /* END layer base */

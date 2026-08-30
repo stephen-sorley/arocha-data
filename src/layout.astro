@@ -28,7 +28,7 @@ const currentYear = new Date().getFullYear();
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" href="/favicon.ico">
-    <link rel="preload" as="font" type="font/woff2" href="/EzzoBook.woff2" crossorigin="anonymous" />
+    <link rel="preload" as="font" type="font/woff2" href="/DMSans.woff2" crossorigin="anonymous" />
     <link rel="preload" as="image" href={logo.src} type="image/png" />
     <style is:inline>
       @layer reset, base, components, utilities;
@@ -149,40 +149,42 @@ header {
     align-items: center;
     justify-content: space-between;
     gap: var(--sp-sm);
-    font-size: var(--text-xl);
+    font-size: var(--text-2xl);
   }
-    
+
+  a {
+    text-decoration: underline;
+    text-decoration-thickness: from-font;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.1lh;
+    transition:
+      background-color var(--duration) ease,
+      text-decoration-color var(--duration) ease;
+    &:hover {
+      background-color: color-mix(in oklch, var(--color-bg), var(--color-fg) 2.5%);
+      text-decoration-color: currentColor;
+    }
+  }
+ 
   nav {
     overflow: visible;
   }
 
   img {
-    height: 2lh;
+    height: 1.5lh;
     width: auto;
     max-width: 100%;
+    pointer-events: none;
   }
-    
+
   h1 {
     align-content: center;
     width: max-content;
-    font-weight: bolder;
+    font-weight: 300;
+    font-size: 0.9em;
 
     &> span, a {
-      padding-block-start: 0.25lh;
-      padding-block-end: 0.55lh;
-    }
-    a {
-      text-decoration: underline;
-      text-decoration-thickness: from-font;
-      text-decoration-color: transparent;
-      text-underline-offset: 0.1lh;
-      transition:
-        background-color var(--duration) ease,
-        text-decoration-color var(--duration) ease;
-      &:hover {
-        background-color: color-mix(in oklch, var(--color-bg), var(--color-fg) 2.5%);
-        text-decoration-color: currentColor;
-      }
+      padding-block: 0.4lh;
     }
   }
 }
