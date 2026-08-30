@@ -91,7 +91,7 @@ const getDesignation = (sub: Stripe.Subscription) => {
     ["Texas Conservation Project",     "USA-Texas Conservation Project"],
     
     ["Climate Stewards",         "Climate Stewards"],
-    ["Global Conservation Fund", "Global Conservation Fund(GCF)-ARI"],
+    ["Global Conservation Fund", "Global Conservation Fund"],
     
     ["Costa Rica",    "Casa Adobe/Costa Rica"],
     ["Canada",        "Canada"],
