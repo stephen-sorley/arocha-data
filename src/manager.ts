@@ -28,7 +28,7 @@ import subInfo_gen from "../private/recurring.json" with {type: "json"};
 import type {
   ManagerEmailMap,
   ManagerSubInfo
-} from "../private/manager.js";
+} from "../private/manager.d.ts";
 import { ActionError } from "astro:actions";
 const managerEmailMap = emailMap_gen as ManagerEmailMap;
 const managerSubInfo = subInfo_gen as ManagerSubInfo;
