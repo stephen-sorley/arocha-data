@@ -32,7 +32,8 @@ html {
   --color-fg: #000;
   --color-bg: #fff;
   --color-main: #0097ce;
-  --color-alt1: #e1523d;
+  --color-default: #007fad;
+  --color-alt1: #db3b24;
   --color-alt2: #4b9263;
   --color-alt3: #003c52;
   --color-border: #b8b8b8;
@@ -131,7 +132,7 @@ html {
     --color-btn-fg: var(--color-bg);
     
     &.default {
-      --color-btn-bg: var(--color-main);
+      --color-btn-bg: var(--color-default);
     }
     &.primary {
       --color-btn-bg: var(--color-alt1);
