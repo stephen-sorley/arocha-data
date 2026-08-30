@@ -18,6 +18,12 @@ import IconUnknown  from "../help.svg";
 
 export const prerender = false;
 
+/* DEBUG_161: Strict CSP not currently working, add this workaround until it does: */
+Astro.csp?.insertScriptResource("'unsafe-inline'");
+Astro.csp?.insertStyleResource("'unsafe-inline'");
+Astro.csp?.insertScriptResource("'self'");
+Astro.csp?.insertStyleResource("'self'");
+
 const {subInfo} = getSubInfo(Astro.params.token);
 if (!subInfo) {
   return new Response("Account not found", { status: 404 });
