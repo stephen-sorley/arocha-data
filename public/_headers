@@ -21,3 +21,14 @@
   Permissions-Policy: camera=(), microphone=(), display-capture=()
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Resource-Policy: same-site
+
+# Caching rules for static public files.
+# We also need to redefine the caching rules for hashed Astro assets, since
+# Astro will detect that we're setting our own Cache-Control rules and refuse
+# to inject their own.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+/favicon.ico
+  Cache-Control: public, max-age=86400, stale-while-revalidate=2419200
+/logo.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=2419200
