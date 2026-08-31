@@ -10,11 +10,8 @@ export type ManagerSubInfo = {
       amount: string,
       frequency: "month" | "quarter" | "year",
       since: string,
-      contactId: string,
       processorId: string,
       processorDonorUrl?: string,
-      processor: "cnp" | "paypal" | "stripe",
-      status?: "active" | "inactive" | "unknown",
     }[],
   }
 };

@@ -18,9 +18,9 @@ import {
   type PaypalConnection,
 } from "../lib/paypal.ts";
 
-import type {
-  RecurringStatus
-} from "../lib/utils.ts";
+import {
+  processorFromId,
+  type RecurringStatus} from "../lib/utils.ts";
 
 // Import static private JSON data, force the proper types using "as".
 import emailMap_gen from "../private/email-map.json" with {type: "json"};
@@ -67,10 +67,11 @@ export const getStatuses = async (subInfo: SubInfo): Promise<RecurringStatus[]> 
 
   return Promise.all(subInfo.subs.map(sub => {
     try {
-      if (sub.processor === "stripe") {
+      const proc = processorFromId(sub.processorId);
+      if (proc === "stripe") {
         return stripeGetStatus(stripe as NonNullable<typeof stripe>, sub.processorId);
       }
-      if (sub.processor === "paypal") {
+      if (proc === "paypal") {
         return paypalGetStatus(paypal as NonNullable<typeof paypal>, sub.processorId);
       }
     } catch(e) {
@@ -82,7 +83,6 @@ export const getStatuses = async (subInfo: SubInfo): Promise<RecurringStatus[]> 
 
 export type CancelSubParams = {
   index: number,
-  proc: "stripe" | "paypal",
   procid: string,
 }
 export const cancelSub = async (subInfo: SubInfo, params: CancelSubParams) => {
@@ -97,23 +97,20 @@ export const cancelSub = async (subInfo: SubInfo, params: CancelSubParams) => {
       code: "BAD_REQUEST",
     });
   }
-  if (sub?.processor !== params.proc) {
-    throw new ActionError({
-      message: `given processor ${params.proc} doesn't match ${sub?.processor}`,
-      code: "BAD_REQUEST",
-    });
-  }
 
+  const proc = processorFromId(sub.processorId);
   try {
     const reason = "canceled online using Legacy Subscription Manager";
-    if (params.proc === "stripe") {
-      await (stripe as StripeConnection).subscriptions.cancel(params.procid, {cancellation_details: {comment: reason}});
-    } else {
-      await (paypal as PaypalConnection).cancelSubscription({id: params.procid, body: {reason: reason}});
+    if (proc === "stripe") {
+      return await (stripe as StripeConnection).subscriptions.cancel(params.procid, {cancellation_details: {comment: reason}});
     }
+    if (proc === "paypal") {
+      return await (paypal as PaypalConnection).cancelSubscription({id: params.procid, body: {reason: reason}});
+    }
+    throw "unsupported processor type";
   } catch (e) {
     throw new ActionError({
-      message: `${params.proc} request failed: ${errToString(e)}`,
+      message: `${proc} request failed: ${errToString(e)}`,
       code: "SERVICE_UNAVAILABLE",
     });
   }

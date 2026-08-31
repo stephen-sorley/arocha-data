@@ -191,26 +191,26 @@ for (const sub of subs) {
   ];
   w.write(line.join(",") + "\n");
 
-  const managerSubs = managerSubInfo[contact.account] || {
+  const managerSub = managerSubInfo[contact.account] || {
+    greeting: accountToGreeting.get(contact.account)?.trim() || undefined,
     hasPaypal: false,
     hasStripe: false,
     subs: []
   };
-  if (managerSubs.subs.length === 0) {
-    managerSubs.greeting = accountToGreeting.get(contact.account)?.trim() || undefined;
-    managerSubInfo[contact.account] = managerSubs;
+  if (managerSub.subs.length === 0) {
+    managerSubInfo[contact.account] = managerSub;
   }
   const processor = processorFromId(sub.id);
-  managerSubs.hasPaypal ||= processor === "paypal";
-  managerSubs.hasStripe ||= processor === "stripe";
-  managerSubs.subs.push({
+  managerSub.hasPaypal ||= processor === "paypal";
+  managerSub.hasStripe ||= processor === "stripe";
+
+  managerSub.subs.push({
     designation: sub.designation,
     amount: amount,
     frequency: sub.frequency,
     since: since,
-    contactId: contact.id,
     processorId: sub.id,
-    processor: processor,
+    processorDonorUrl: sub.donorUrl,
   });
 }
 

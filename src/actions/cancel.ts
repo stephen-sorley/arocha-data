@@ -11,7 +11,6 @@ export const cancel = {
 
     input: z.looseObject({
       index: z.int().gte(0).lt(20),
-      proc: z.enum(["stripe", "paypal"]),
       procid: z.string().max(60).regex(/^(sub_|I-)/)
     }),
 

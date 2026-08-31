@@ -47,10 +47,7 @@ const toFancyDate = (dateStr: string) => {
   });
 };
 
-const start = performance.now();
 const statuses = await getStatuses(subInfo);
-const finish = performance.now();
-console.log(`Retrieved statuses in ${Math.round(finish-start)/1000}s`);
 
 const getIcon = (status: (typeof statuses)[0]) => {
   if (status === "active") {
@@ -61,9 +58,8 @@ const getIcon = (status: (typeof statuses)[0]) => {
   return IconUnknown;
 }
 
-const getCnpId = (id: string) => {
-  const extracted = id.split("https://connect.clickandpledge.com/?ru=")?.[1]?.slice(0, 10);
-  return extracted? extracted : id;
+const isCnp = (id: string) => {
+  return id?.startsWith("cnp_");
 }
 
 ---
@@ -103,14 +99,14 @@ const getCnpId = (id: string) => {
       <div class="details">
         <div>For: {sub.designation}</div>
         <div>Since: {toFancyDate(sub.since)}</div>
-        <div>ID: <span>{sub.processor === "cnp"? getCnpId(sub.processorId) : sub.processorId}</span></div>
+        <div>ID: <span>{sub.processorId}</span></div>
       </div>
-      { sub.processor === "cnp" && (
+      { isCnp(sub.processorId) && (
       <a class="primary" href={sub.processorDonorUrl} target="_blank">
         Manage at Click and Pledge
       </a>
       )}
-      { sub.processor !== "cnp" && statuses[i] !== "inactive" && (
+      { !isCnp(sub.processorId) && statuses[i] !== "inactive" && (
       <Fragment>
         <button class="default" type="button" commandfor={`confirm-${i}`} command="show-modal">
           Stop Recurring Gift
@@ -121,8 +117,6 @@ const getCnpId = (id: string) => {
             <h2>Are you sure?</h2>
 
             <input type="hidden" name="index" value={i} />
-
-            <input type="hidden" name="proc" value={sub.processor} />
 
             <input type="hidden" name="procid" value={sub.processorId} />
 
@@ -159,7 +153,7 @@ const getCnpId = (id: string) => {
 
     This is a progressive enhancement - it removes the possibility of double-submitting
     stop requests on refresh or history navigation, but if javascript is disabled
-    this will still work fine.
+    the form submission will still work fine without this script.
   */
   const url = new URL(window.location.href);
   url.searchParams.delete("_action");
@@ -236,10 +230,9 @@ div:is(.error,.success) {
     --tint: var(--color-success);
     --tint-ratio: 8%;
   }
-  &[data-status="inactive"] > :global(.card-header) {
-    --tint: var(--color-error);
-    --tint-ratio: 7%;
-  }
+  /* Leave untinted - gray
+  &[data-status="inactive"] > :global(.card-header) {}
+  */
 
   &> :global(.card-body) {
     padding-block-start: var(--sp-xs);
