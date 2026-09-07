@@ -53,8 +53,10 @@ export type Affiliation = {
 
 export type Individual = {
   id: string,
-  firstName: string,
-  lastName: string,
+  salutation?: string,
+  firstName?: string,
+  lastName?: string,
+  title?: string,
   parent?: Household["id"] | Organization["id"],
   primaryAffiliation?: Organization["id"], //aka "employer"
   primaryAddress?: Address,

@@ -82,6 +82,8 @@ const contactFields = [
   "AccountId",
   "FirstName",
   "LastName",
+  "Title",
+  "Salutation",
   "Email", //preferred email field, for detecting any data errors only
   "npe01__Preferred_Email__c", // "Home" | "Work" | "Alternate"
   ...emailFields,
@@ -114,6 +116,13 @@ const contactFields = [
 
 const normEmail = (email?: string) => {
   return email?.trim().toLocaleLowerCase();
+}
+
+const cleanName = (name?: string) => {
+  if (name?.toLocaleLowerCase()?.includes("not provided")) {
+    return undefined;
+  }
+  return name;
 }
 
 const contactOnMailingList = (sfContact: any) => {
@@ -158,7 +167,7 @@ const translateSfAccountType = (sfAccountType?: string) => {
     case "foundation": return "foundation";
     case "school / univ": return "school";
     case "government": return "government";
-    case "daf-donor advised fund": return "daf";
+    case "daf": return "daf";
     case "household": return "household";
     case "corporate": return "corporate";
   }
@@ -182,8 +191,10 @@ await sf
     const contactToObj = (contact: typeof contacts[0], parent?: string): Individual => ({
       parent: parent,
       id: contact.Id,
-      firstName: contact.FirstName,
-      lastName: contact.LastName,
+      salutation: contact.Salutation,
+      firstName: cleanName(contact.FirstName),
+      lastName: cleanName(contact.LastName),
+      title: contact.Title,
       primaryAffiliation: contact[f_affiliation],
       primaryAddress: {
         street: contact.MailingStreet,
