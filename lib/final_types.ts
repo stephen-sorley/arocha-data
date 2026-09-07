@@ -13,34 +13,35 @@
  *  - Individuals within households are free
  */
 
-type Address = {
-  line1?: string,
-  line2?: string,
+export type Address = {
+  street?: string,
   city?: string,
   state?: string,
   zip?: string,
   country?: string,
+  type?: "home" | "work" | "alt",
 };
 
-type Organization = {
+export type Organization = {
   id: string,
+  name: string,
   primaryContact?: Individual["id"],
   address?: Address,
   phone?: string,
   website?: string,
-  type: "church" | "nonprofit" | "foundation" | "corporate" | "school" | "government" | "daf",
+  type?: "church" | "nonprofit" | "foundation" | "corporate" | "school" | "government" | "daf",
   created: string, //ISO timestamp
   description?: string,
 };
 
-type Household = {
+export type Household = {
   id: string,
   name: string,
   primaryContact: Individual["id"],
   created: string, //ISO timestamp
 };
 
-type Affiliation = {
+export type Affiliation = {
   id: string,
   person: Individual["id"],
   org: Organization["id"],
@@ -50,16 +51,14 @@ type Affiliation = {
   ended?: string,  //ISO timestamp
 }
 
-type Individual = {
+export type Individual = {
   id: string,
+  firstName: string,
+  lastName: string,
   parent?: Household["id"] | Organization["id"],
   primaryAffiliation?: Organization["id"], //aka "employer"
-  address: {
-    home?: Address,
-    work?: Address,
-    alt?: Address,
-    preferred?: "home" | "work" | "alt",
-  },
+  primaryAddress?: Address,
+  secondaryAddress?: Address,
   email: {
     home?: string,
     work?: string,
@@ -71,7 +70,7 @@ type Individual = {
     mobile?: string,
     work?: string,
     alt?: string,
-    preferred?: "home" | "work" | "alt",
+    preferred?: "home" | "mobile" | "work" | "alt",
   },
   doNotCall?: boolean,
   doNotMail?: boolean,
@@ -80,12 +79,12 @@ type Individual = {
 };
 
 
-type Fund = {
+export type Fund = {
   id: string,
   name: string,
 };
 
-type Gift = {
+export type Gift = {
   id: string,
   donor: Individual["id"] | Organization["id"];
   giveDate: string, //ISO timestamp
@@ -108,7 +107,7 @@ type Gift = {
   reference?: string, // check number, charge unique ID, etc
 }
 
-type SoftCredit = {
+export type SoftCredit = {
   id: string,
   amount: number,
   gift: Gift["id"],
@@ -116,7 +115,7 @@ type SoftCredit = {
   type: "daf" | "match" | "other",
 }
 
-type Commitment = {
+export type Commitment = {
   id: string,
   amount: number,
   intervalMonths: 1 | 3 | 12,
@@ -126,12 +125,12 @@ type Commitment = {
   reference?: string,
 }
 
-type MarketingSubscription = {
+export type MarketingSubscription = {
   subscriber: Individual["id"],
   /**
    * ARUSA: main newsletter, every contact will have this
    * CSUSA: climate stewards
-   * LYP: LoveYourPlace (Might Networks Memebers)
+   * LYP: LoveYourPlace (Mighty Networks Memebers)
    * CP: Church Partners
    */
   interest: "ARUSA" | "CSUSA" | "LYP" | "CP",

@@ -8,6 +8,12 @@
 import { sfConnect } from "./lib/salesforce.ts";
 import { cmGetSubs } from "./lib/campaign-monitor.ts";
 
+import type {
+  Individual,
+  Household,
+  Organization,
+} from "./lib/final_types.ts"
+
 
 // Set parameters for what contacts and transactions we'll keep.
 const allGiftsWindow = 5; // how long do we keep households who've made any donation at all?
@@ -17,7 +23,6 @@ const largeGiftThreshold = 1000; // how many dollars is considered a lot of dona
 const currentYear = Temporal.Now.plainDateISO().year;
 const allMinDate = Temporal.PlainDate.from(`${currentYear - allGiftsWindow}-01-01`);
 const largeMinDate = Temporal.PlainDate.from(`${currentYear - largeGiftsWindow}-01-01`);
-
 
 // Get current mailing list subscription records.
 let start = performance.now();
@@ -32,11 +37,32 @@ const mailingListSubs = await cmGetSubs({
 });
 console.error(`Retreived ${mailingListSubs.size} active CM subscribers in ${Math.round(performance.now() - start)/1000}s`);
 
+const out: {
+  organizations: Organization[],
+  households: Household[],
+  individuals: Individual[],
+} = {
+  organizations: [],
+  households: [],
+  individuals: [],
+}
+
 const sf = await sfConnect();
 
 const accountFields = [
   "Id",
-  "Type"
+  "Name",
+  "Type",
+  "BillingStreet",
+  "BillingCity",
+  "BillingState",
+  "BillingPostalCode",
+  "BillingCountry",
+  "Phone",
+  "website",
+  "CreatedDate",
+  "Description",
+  "npe01__One2OneContact__c" //primary contact ID
 ];
 
 
@@ -54,12 +80,36 @@ const f_affiliation = "npsp__Primary_Affiliation__c";
 const contactFields = [
   "Id", // contact ID
   "AccountId",
+  "FirstName",
+  "LastName",
   "Email", //preferred email field, for detecting any data errors only
+  "npe01__Preferred_Email__c", // "Home" | "Work" | "Alternate"
   ...emailFields,
+  "npe01__PreferredPhone__c", // "Home" | "Work" | "Mobile" | "Other"
+  "HomePhone",
+  "npe01__WorkPhone__c",
+  "MobilePhone",
+  "OtherPhone",
   f_lastGiftDate,
   f_largestHardYearTotal,
   f_largestSoft,
-  f_affiliation
+  f_affiliation,
+  "DoNotCall",
+  "Do_Not_Mail__c",
+  "npe01__Primary_Address_Type__c", // "Home" | "Work" | "Other"
+  "MailingStreet",
+  "MailingCity",
+  "MailingState",
+  "MailingPostalCode",
+  "MailingCountry",
+  "npe01__Secondary_Address_Type__c", // "Home" | "Work" | "Other"
+  "OtherStreet",
+  "OtherCity",
+  "OtherState",
+  "OtherPostalCode",
+  "OtherCountry",
+  "CreatedDate",
+  "Description"
 ];
 
 const normEmail = (email?: string) => {
@@ -76,6 +126,45 @@ const contactOnMailingList = (sfContact: any) => {
   return false;
 };
 
+const translateSfEmailPref = (sfPreferredEmail?: string) => {
+  switch(sfPreferredEmail?.trim()?.toLocaleLowerCase()) {
+    case "work": return "work";
+    case "alternate": return "alt";
+  }
+  return "home";
+}
+
+const translateSfPhonePref = (sfPreferredPhone?: string) => {
+  switch(sfPreferredPhone?.trim()?.toLocaleLowerCase()) {
+    case "work": return "work";
+    case "mobile": return "mobile";
+    case "other": return "alt";
+  }
+  return "home";
+}
+
+const translateSfAddressType = (sfAddressType?: string) => {
+  switch(sfAddressType?.trim()?.toLocaleLowerCase()) {
+    case "work": return "work";
+    case "other": return "alt";
+  }
+  return "home";
+}
+
+const translateSfAccountType = (sfAccountType?: string) => {
+  switch(sfAccountType?.trim()?.toLocaleLowerCase()) {
+    case "church": return "church";
+    case "nonprofit": return "nonprofit";
+    case "foundation": return "foundation";
+    case "school / univ": return "school";
+    case "government": return "government";
+    case "daf-donor advised fund": return "daf";
+    case "household": return "household";
+    case "corporate": return "corporate";
+  }
+  return undefined;
+};
+
 let numDiscrete = 0; // number of contacts + number of organization accounts.
 let numOrgs = 0; // number of organization accounts
 let numToKeep = 0; // number of discrete entities we wish to keep around.
@@ -89,24 +178,87 @@ await sf
   .query(`SELECT ${accountFields.join(",")},(SELECT ${contactFields.join(",")} FROM Contacts) FROM Account`)
   .on("record", (account) => {
     
-    // Count all accounts that don't have contacts attached to them as constituents.
-    if (!account.Contacts) {
-      numDiscrete++;
-      numOrgs++;
-      numToKeep++;
-      bloomerang++;
-      virtuous++;
-      return;
+    const contacts = (account.Contacts?.records as Record<string, any>[]) || [];
+    const contactToObj = (contact: typeof contacts[0], parent?: string): Individual => ({
+      parent: parent,
+      id: contact.Id,
+      firstName: contact.FirstName,
+      lastName: contact.LastName,
+      primaryAffiliation: contact[f_affiliation],
+      primaryAddress: {
+        street: contact.MailingStreet,
+        city: contact.MailingCity,
+        state: contact.MailingState,
+        zip: contact.MailingPostalCode,
+        country: contact.MailingCountry,
+        type: translateSfAddressType(contact.npe01__Primary_Address_Type__c),
+      },
+      secondaryAddress: {
+        street: contact.OtherStreet,
+        city: contact.OtherCity,
+        state: contact.OtherState,
+        zip: contact.OtherPostalCode,
+        country: contact.OtherCountry,
+        type: translateSfAddressType(contact.npe01__Secondary_Address_Type__c),
+      },
+      email: {
+        home: contact[emailFields[0]],
+        work: contact[emailFields[1]],
+        alt: contact[emailFields[2]],
+        preferred: translateSfEmailPref(contact.npe01__Preferred_Email__c),
+      },
+      phone: {
+        home: contact.HomePhone,
+        mobile: contact.MobilePhone,
+        work: contact.npe01__WorkPhone__c,
+        alt: contact.OtherPhone,
+        preferred: translateSfPhonePref(contact.npe01__PreferredPhone__c),
+      },
+      doNotCall: contact.DoNotCall,
+      doNotMail: contact.Do_Not_Mail__c,
+      created: contact.CreatedDate,
+      description: contact.Description,
+    });
+
+    const type = translateSfAccountType(account.Type);
+    if (!type) {
+      console.error(`Account ${account.Id} has no type.`);
     }
-    const contacts = account.Contacts.records as Record<string, any>[];
 
     // For non-household accounts, the account itself is a constituent, as well as
     // all contacts that belong to it.
-    if (account.Type !== "Household") {
+    if (type !== "household") {
+      numOrgs++;
       numDiscrete += contacts.length + 1;
       numToKeep += contacts.length + 1;
       virtuous++;
       bloomerang += contacts.length + 1;
+
+      out.organizations.push({
+        id: account.Id,
+        name: account.Name,
+        type: type,
+        primaryContact: account["npe01__One2OneContact__c"],
+        address: {
+          street: account.BillingStreet,
+          city: account.BillingCity,
+          state: account.BillingState,
+          zip: account.BillingPostalCode,
+          country: account.BillingCountry,
+        },
+        phone: account.Phone,
+        website: account.Website,
+        created: account.CreatedDate,
+        description: account.Description,
+      });
+      for (const contact of contacts) {
+        out.individuals.push(contactToObj(contact, account.Id));
+      }
+      return;
+    }
+    
+    if (contacts.length === 0) {
+      console.error(`Household account ${account.Id} has no contacts.`);
       return;
     }
 
@@ -164,6 +316,20 @@ await sf
       numToKeep += contacts.length;
       bloomerang++;
       virtuous++;
+
+      // Note: only save the household if it has more than one person in it.
+      if (contacts.length > 1) {
+        out.households.push({
+          id: account.Id,
+          name: account.Name,
+          primaryContact: account.npe01__One2OneContact__c,
+          created: account.CreatedDate,
+        });
+      }
+
+      for (const contact of contacts) {
+        out.individuals.push(contactToObj(contact, contacts.length>1? account.Id : undefined));
+      }
     }
   })
   .execute({ autoFetch: true });
@@ -171,9 +337,10 @@ console.error(`Retrieved ${numDiscrete} constituents from SF in ${Math.round(per
 
 // Add any active subscribers in CM that are missing from Salesforce.
 let numMissing = 0;
-for (const email of mailingListSubs.keys()) {
+for (const [email, sub] of mailingListSubs.entries()) {
   if (!sfEmails.has(email)) {
     numMissing++;
+    //TODO: add individuals from signups that aren't in salesforce.
   }
 }
 numDiscrete += numMissing;
@@ -196,3 +363,5 @@ Billable Contacts
   Virtuous           : ${virtuous}
 ========================================
 `);
+
+console.log(JSON.stringify(out,null,2));
